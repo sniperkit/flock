@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/search"
 )
 
 func TestSearchResultString(t *testing.T) {

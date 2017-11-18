@@ -31,7 +31,7 @@ func NewEmulatedBatch(mo MergeOperator) *EmulatedBatch {
 	}
 }
 
-func (b *EmulatedBatch) Set(key, val []byte) {
+func (b *EmulatedBatch) Set(table string, key, val []byte) {
 	ck := make([]byte, len(key))
 	copy(ck, key)
 	cv := make([]byte, len(val))
@@ -39,18 +39,18 @@ func (b *EmulatedBatch) Set(key, val []byte) {
 	b.Ops = append(b.Ops, &op{ck, cv})
 }
 
-func (b *EmulatedBatch) Delete(key []byte) {
+func (b *EmulatedBatch) Delete(table string, key []byte) {
 	ck := make([]byte, len(key))
 	copy(ck, key)
 	b.Ops = append(b.Ops, &op{ck, nil})
 }
 
-func (b *EmulatedBatch) Merge(key, val []byte) {
+func (b *EmulatedBatch) Merge(table string, key, val []byte) {
 	ck := make([]byte, len(key))
 	copy(ck, key)
 	cv := make([]byte, len(val))
 	copy(cv, val)
-	b.Merger.Merge(key, val)
+	b.Merger.Merge(table, key, val)
 }
 
 func (b *EmulatedBatch) Reset() {

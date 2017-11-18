@@ -18,7 +18,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index/store"
 )
 
 // test merge behavior
@@ -41,6 +41,8 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 		{testKey, encodeUint64(1)},
 	}
 
+	table := "b"
+
 	// open a writer
 	writer, err := s.Writer()
 	if err != nil {
@@ -50,7 +52,7 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 	// write the data
 	batch := writer.NewBatch()
 	for _, row := range data {
-		batch.Merge(row.key, row.val)
+		batch.Merge(table, row.key, row.val)
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -70,7 +72,7 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 	}
 
 	// read key
-	returnedVal, err := reader.Get(testKey)
+	returnedVal, err := reader.Get(table, testKey)
 	if err != nil {
 		t.Fatal(err)
 	}

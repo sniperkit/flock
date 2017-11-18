@@ -29,11 +29,6 @@ func TestRows(t *testing.T) {
 		outVal []byte
 	}{
 		{
-			NewVersionRow(1),
-			[]byte{'v'},
-			[]byte{0x1},
-		},
-		{
 			NewFieldRow(0, "name"),
 			[]byte{'f', 0, 0},
 			[]byte{'n', 'a', 'm', 'e', ByteSeparator},
@@ -115,8 +110,8 @@ func TestRows(t *testing.T) {
 	// test going from struct to k/v bytes
 	for i, test := range tests {
 		rk := test.input.Key()
-		if !reflect.DeepEqual(rk, test.outKey) {
-			t.Errorf("Expected key to be %v got: %v", test.outKey, rk)
+		if !reflect.DeepEqual(rk, test.outKey[1:]) {
+			t.Errorf("Expected key to be %v got: %v", string(test.outKey), string(rk))
 		}
 		rv := test.input.Value()
 		if !reflect.DeepEqual(rv, test.outVal) {
@@ -126,120 +121,14 @@ func TestRows(t *testing.T) {
 
 	// now test going back from k/v bytes to struct
 	for i, test := range tests {
-		row, err := ParseFromKeyValue(test.outKey, test.outVal)
-		if err != nil {
-			t.Errorf("error parsking key/value: %v", err)
+		if !reflect.DeepEqual(test.outKey[1:], test.input.Key()) {
+			t.Errorf("Expected Key: %#v got: %#v for %d", test.input.Key(), test.outKey, i)
 		}
-		if !reflect.DeepEqual(row, test.input) {
-			t.Errorf("Expected: %#v got: %#v for %d", test.input, row, i)
+		if !reflect.DeepEqual(test.outVal, test.input.Value()) {
+			t.Errorf("Expected Value: %#v got: %#v for %d", test.input.Value(), test.outVal, i)
 		}
 	}
 
-}
-
-func TestInvalidRows(t *testing.T) {
-	tests := []struct {
-		key []byte
-		val []byte
-	}{
-		// empty key
-		{
-			[]byte{},
-			[]byte{},
-		},
-		// no such type q
-		{
-			[]byte{'q'},
-			[]byte{},
-		},
-		// type v, invalid empty value
-		{
-			[]byte{'v'},
-			[]byte{},
-		},
-		// type f, invalid key
-		{
-			[]byte{'f'},
-			[]byte{},
-		},
-		// type f, valid key, invalid value
-		{
-			[]byte{'f', 0, 0},
-			[]byte{},
-		},
-		// type t, invalid key (missing field)
-		{
-			[]byte{'t'},
-			[]byte{},
-		},
-		// type t, invalid key (missing term)
-		{
-			[]byte{'t', 0, 0},
-			[]byte{},
-		},
-		// type t, invalid key (missing id)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator},
-			[]byte{},
-		},
-		// type t, invalid val (missing freq)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{},
-		},
-		// type t, invalid val (missing norm)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{3},
-		},
-		// type t, invalid val (half missing tv field, full missing is valid (no term vectors))
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{3, 25, 255},
-		},
-		// type t, invalid val (missing tv pos)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{3, 25, 0},
-		},
-		// type t, invalid val (missing tv start)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{3, 25, 0, 0},
-		},
-		// type t, invalid val (missing tv end)
-		{
-			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{3, 25, 0, 0, 0},
-		},
-		// type b, invalid key (missing id)
-		{
-			[]byte{'b'},
-			[]byte{'b', 'e', 'e', 'r', ByteSeparator, 0, 0},
-		},
-		// type b, invalid val (missing field)
-		{
-			[]byte{'b', 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
-			[]byte{'g', 'a', 'r', 'b', 'a', 'g', 'e'},
-		},
-		// type s, invalid key (missing id)
-		{
-			[]byte{'s'},
-			[]byte{'t', 'a', 'n', ' ', 'a', 'm', 'e', 'r', 'i', 'c', 'a', 'n', ' ', 'b', 'e', 'e', 'r'},
-		},
-		// type b, invalid val (missing field)
-		{
-			[]byte{'s', 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r', ByteSeparator},
-			[]byte{'t', 'a', 'n', ' ', 'a', 'm', 'e', 'r', 'i', 'c', 'a', 'n', ' ', 'b', 'e', 'e', 'r'},
-		},
-	}
-
-	for _, test := range tests {
-		_, err := ParseFromKeyValue(test.key, test.val)
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-	}
 }
 
 func TestDictionaryRowValueBug197(t *testing.T) {

@@ -20,9 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/highlight/highlighter/ansi"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/search/highlight/highlighter/ansi"
 )
 
 var indexMapping mapping.IndexMapping
@@ -111,20 +110,6 @@ func ExampleNewMatchQuery() {
 	fmt.Println(searchResults.Hits[0].ID)
 	// Output:
 	// document id 1
-}
-
-func ExampleNewMatchAllQuery() {
-	// finds all documents in the index
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(len(searchResults.Hits))
-	// Output:
-	// 2
 }
 
 func ExampleNewMatchNoneQuery() {
@@ -254,64 +239,6 @@ func ExampleNewTermQuery() {
 	// document id 2
 }
 
-func ExampleNewFacetRequest() {
-	facet := NewFacetRequest("Name", 1)
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchRequest.AddFacet("facet name", facet)
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	// total number of terms
-	fmt.Println(searchResults.Facets["facet name"].Total)
-	// numer of docs with no value for this field
-	fmt.Println(searchResults.Facets["facet name"].Missing)
-	// term with highest occurrences in field name
-	fmt.Println(searchResults.Facets["facet name"].Terms[0].Term)
-	// Output:
-	// 5
-	// 2
-	// one
-}
-
-func ExampleFacetRequest_AddDateTimeRange() {
-	facet := NewFacetRequest("Created", 1)
-	facet.AddDateTimeRange("range name", time.Unix(0, 0), time.Now())
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchRequest.AddFacet("facet name", facet)
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	// dates in field Created since starting of unix time till now
-	fmt.Println(searchResults.Facets["facet name"].DateRanges[0].Count)
-	// Output:
-	// 2
-}
-
-func ExampleFacetRequest_AddNumericRange() {
-	value1 := float64(11)
-
-	facet := NewFacetRequest("Priority", 1)
-	facet.AddNumericRange("range name", &value1, nil)
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchRequest.AddFacet("facet name", facet)
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	// number documents with field Priority in the given range
-	fmt.Println(searchResults.Facets["facet name"].NumericRanges[0].Count)
-	// Output:
-	// 1
-}
-
 func ExampleNewHighlight() {
 	query := NewMatchQuery("nameless")
 	searchRequest := NewSearchRequest(query)
@@ -338,28 +265,6 @@ func ExampleNewHighlightWithStyle() {
 	fmt.Println(searchResults.Hits[0].Fragments["Name"][0])
 	// Output:
 	// great [43mnameless[0m one
-}
-
-func ExampleSearchRequest_AddFacet() {
-	facet := NewFacetRequest("Name", 1)
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchRequest.AddFacet("facet name", facet)
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	// total number of terms
-	fmt.Println(searchResults.Facets["facet name"].Total)
-	// numer of docs with no value for this field
-	fmt.Println(searchResults.Facets["facet name"].Missing)
-	// term with highest occurrences in field name
-	fmt.Println(searchResults.Facets["facet name"].Terms[0].Term)
-	// Output:
-	// 5
-	// 2
-	// one
 }
 
 func ExampleNewSearchRequest() {
@@ -436,32 +341,6 @@ func ExampleSearchRequest_SortBy() {
 	fmt.Println(searchResults.Hits[0].ID)
 	fmt.Println(searchResults.Hits[1].ID)
 	// Output:
-	// document id 2
-	// document id 1
-}
-
-func ExampleSearchRequest_SortByCustom() {
-	// find all docs, order by Age, with docs missing Age field first
-	query := NewMatchAllQuery()
-	searchRequest := NewSearchRequest(query)
-	searchRequest.SortByCustom(search.SortOrder{
-		&search.SortField{
-			Field:   "Age",
-			Missing: search.SortFieldMissingFirst,
-		},
-	})
-	searchResults, err := exampleIndex.Search(searchRequest)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(searchResults.Hits[0].ID)
-	fmt.Println(searchResults.Hits[1].ID)
-	fmt.Println(searchResults.Hits[2].ID)
-	fmt.Println(searchResults.Hits[3].ID)
-	// Output:
-	// document id 3
-	// document id 4
 	// document id 2
 	// document id 1
 }

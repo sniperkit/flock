@@ -22,12 +22,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/numeric"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/numeric"
+	"github.com/wrble/flock/search"
 )
 
 func TestIndexAliasSingle(t *testing.T) {
@@ -649,7 +649,7 @@ func TestMultiSearchSomeError(t *testing.T) {
 }
 
 // TestMultiSearchAllError
-// reproduces https://github.com/blevesearch/bleve/issues/126
+// reproduces https://github.com/wrble/flock/issues/126
 func TestMultiSearchAllError(t *testing.T) {
 	ei1 := &stubIndex{name: "ei1", err: fmt.Errorf("deliberate error")}
 	ei2 := &stubIndex{name: "ei2", err: fmt.Errorf("deliberate error")}

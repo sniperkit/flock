@@ -20,9 +20,9 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/search"
 )
 
 var logger = log.New(ioutil.Discard, "bleve mapping ", log.LstdFlags)
@@ -212,15 +212,6 @@ func ParseQuery(input []byte) (Query, error) {
 	_, hasWildcard := tmp["wildcard"]
 	if hasWildcard {
 		var rv WildcardQuery
-		err := json.Unmarshal(input, &rv)
-		if err != nil {
-			return nil, err
-		}
-		return &rv, nil
-	}
-	_, hasMatchAll := tmp["match_all"]
-	if hasMatchAll {
-		var rv MatchAllQuery
 		err := json.Unmarshal(input, &rv)
 		if err != nil {
 			return nil, err

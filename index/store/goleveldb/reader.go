@@ -15,9 +15,11 @@
 package goleveldb
 
 import (
-	"github.com/blevesearch/bleve/index/store"
+	"fmt"
+
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/wrble/flock/index/store"
 )
 
 type Reader struct {
@@ -25,37 +27,68 @@ type Reader struct {
 	snapshot *leveldb.Snapshot
 }
 
-func (r *Reader) Get(key []byte) ([]byte, error) {
-	b, err := r.snapshot.Get(key, r.store.defaultReadOptions)
+func (r *Reader) Get(table string, key []byte) ([]byte, error) {
+	if r.store.debug {
+		fmt.Println("GET", table, string(key))
+	}
+	b, err := r.snapshot.Get(store.Combine(table, key), r.store.defaultReadOptions)
 	if err == leveldb.ErrNotFound {
 		return nil, nil
 	}
 	return b, err
 }
 
-func (r *Reader) MultiGet(keys [][]byte) ([][]byte, error) {
-	return store.MultiGet(r, keys)
+func (r *Reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {
+	return store.MultiGet(r, table, keys)
 }
 
-func (r *Reader) PrefixIterator(prefix []byte) store.KVIterator {
-	byteRange := util.BytesPrefix(prefix)
+func (r *Reader) DocCount() (count uint64, err error) {
+	it := r.PrefixIterator("b", []byte{})
+	defer func() {
+		if cerr := it.Close(); err == nil && cerr != nil {
+			err = cerr
+		}
+	}()
+	_, _, valid := it.Current()
+	for valid {
+		count++
+		it.Next()
+		_, _, valid = it.Current()
+	}
+	return
+}
+
+func (r *Reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
+	if r.store.debug {
+		fmt.Println("PrefixIterator", table, string(prefix))
+	}
+
+	byteRange := util.BytesPrefix(store.Combine(table, prefix))
 	iter := r.snapshot.NewIterator(byteRange, r.store.defaultReadOptions)
 	iter.First()
 	rv := Iterator{
 		store:    r.store,
 		iterator: iter,
+		table:    table,
 	}
 	return &rv
 }
 
-func (r *Reader) RangeIterator(start, end []byte) store.KVIterator {
+func (r *Reader) RangeIterator(table string, start, end []byte) store.KVIterator {
+	if end == nil {
+		end = []byte{0xFF}
+	}
+	if r.store.debug {
+		fmt.Println("RangeIterator", table, string(start), string(end))
+	}
 	byteRange := &util.Range{
-		Start: start,
-		Limit: end,
+		Start: store.Combine(table, start),
+		Limit: store.Combine(table, end),
 	}
 	iter := r.snapshot.NewIterator(byteRange, r.store.defaultReadOptions)
 	iter.First()
 	rv := Iterator{
+		table:    table,
 		store:    r.store,
 		iterator: iter,
 	}

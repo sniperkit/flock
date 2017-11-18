@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/searcher"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/search"
+	"github.com/wrble/flock/search/searcher"
 )
 
 type BooleanQuery struct {
@@ -154,14 +154,6 @@ func (q *BooleanQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, opt
 	// if all 3 are nil, return MatchNone
 	if mustSearcher == nil && shouldSearcher == nil && mustNotSearcher == nil {
 		return searcher.NewMatchNoneSearcher(i)
-	}
-
-	// if only mustNotSearcher, start with MatchAll
-	if mustSearcher == nil && shouldSearcher == nil && mustNotSearcher != nil {
-		mustSearcher, err = searcher.NewMatchAllSearcher(i, 1.0, options)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	// optimization, if only should searcher, just return it instead

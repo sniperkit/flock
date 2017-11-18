@@ -79,10 +79,6 @@ func TestHandlers(t *testing.T) {
 	listFieldsHandler := NewListFieldsHandler("")
 	listFieldsHandler.IndexNameLookup = indexNameLookup
 
-	debugHandler := NewDebugDocumentHandler("")
-	debugHandler.IndexNameLookup = indexNameLookup
-	debugHandler.DocIDLookup = docIDLookup
-
 	aliasHandler := NewAliasHandler()
 
 	tests := []struct {
@@ -496,33 +492,6 @@ func TestHandlers(t *testing.T) {
 			Method:  "GET",
 			Params: url.Values{
 				"indexName": []string{"tix"},
-			},
-			Status:       http.StatusNotFound,
-			ResponseBody: []byte(`no such index 'tix'`),
-		},
-		{
-			Desc:    "debug doc",
-			Handler: debugHandler,
-			Path:    "/ti1/a/debug",
-			Method:  "GET",
-			Params: url.Values{
-				"indexName": []string{"ti1"},
-				"docID":     []string{"a"},
-			},
-			Status: http.StatusOK,
-			ResponseMatch: map[string]bool{
-				`"key"`: true,
-				`"val"`: true,
-			},
-		},
-		{
-			Desc:    "debug doc invalid index",
-			Handler: debugHandler,
-			Path:    "/ti1/a/debug",
-			Method:  "GET",
-			Params: url.Values{
-				"indexName": []string{"tix"},
-				"docID":     []string{"a"},
 			},
 			Status:       http.StatusNotFound,
 			ResponseBody: []byte(`no such index 'tix'`),

@@ -15,9 +15,11 @@
 package searcher
 
 import (
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/scorer"
+	"errors"
+
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/search"
+	"github.com/wrble/flock/search/scorer"
 )
 
 // DocIDSearcher returns documents matching a predefined set of identifiers.
@@ -27,19 +29,18 @@ type DocIDSearcher struct {
 	count  int
 }
 
-func NewDocIDSearcher(indexReader index.IndexReader, ids []string, boost float64,
-	options search.SearcherOptions) (searcher *DocIDSearcher, err error) {
-
-	reader, err := indexReader.DocIDReaderOnly(ids)
-	if err != nil {
-		return nil, err
-	}
-	scorer := scorer.NewConstantScorer(1.0, boost, options)
-	return &DocIDSearcher{
-		scorer: scorer,
-		reader: reader,
-		count:  len(ids),
-	}, nil
+func NewDocIDSearcher(indexReader index.IndexReader, ids []string, boost float64, options search.SearcherOptions) (searcher *DocIDSearcher, err error) {
+	return nil, errors.New("DOC ID NOT IMPLEMENTED")
+	//reader, err := indexReader.DocIDReaderOnly(ids)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//scorer := scorer.NewConstantScorer(1.0, boost, options)
+	//return &DocIDSearcher{
+	//	scorer: scorer,
+	//	reader: reader,
+	//	count:  len(ids),
+	//}, nil
 }
 
 func (s *DocIDSearcher) Count() uint64 {

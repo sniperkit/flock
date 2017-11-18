@@ -14,11 +14,10 @@
 
 package index
 
-import "github.com/blevesearch/bleve/document"
+import "github.com/wrble/flock/document"
 
 type IndexRow interface {
-	KeySize() int
-	KeyTo([]byte) (int, error)
+	Table() string
 	Key() []byte
 
 	ValueSize() int

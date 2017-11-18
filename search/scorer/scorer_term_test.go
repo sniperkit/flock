@@ -19,8 +19,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/search"
 )
 
 func TestTermScorer(t *testing.T) {

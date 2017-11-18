@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/search/query"
 	"github.com/spf13/cobra"
+	"github.com/wrble/flock"
+	"github.com/wrble/flock/search/query"
 )
 
 var limit, skip, repeat int

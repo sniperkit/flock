@@ -17,5 +17,5 @@
 package config
 
 import (
-	_ "github.com/blevesearch/blevex/lang/th"
+	_ "github.com/wrble/flockx/lang/th"
 )

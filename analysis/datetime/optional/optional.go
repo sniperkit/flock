@@ -17,9 +17,9 @@ package optional
 import (
 	"time"
 
-	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/analysis/datetime/flexible"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/analysis"
+	"github.com/wrble/flock/analysis/datetime/flexible"
+	"github.com/wrble/flock/registry"
 )
 
 const Name = "dateTimeOptional"

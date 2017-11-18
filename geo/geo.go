@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/blevesearch/bleve/numeric"
+	"github.com/wrble/flock/numeric"
 )
 
 // GeoBits is the number of bits used for a single geo point

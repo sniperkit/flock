@@ -15,9 +15,9 @@
 package upsidedown
 
 import (
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
 )
 
 type IndexReader struct {
@@ -32,26 +32,6 @@ func (i *IndexReader) TermFieldReader(term []byte, fieldName string, includeFreq
 		return newUpsideDownCouchTermFieldReader(i, term, uint16(fieldIndex), includeFreq, includeNorm, includeTermVectors)
 	}
 	return newUpsideDownCouchTermFieldReader(i, []byte{ByteSeparator}, ^uint16(0), includeFreq, includeNorm, includeTermVectors)
-}
-
-func (i *IndexReader) FieldDict(fieldName string) (index.FieldDict, error) {
-	return i.FieldDictRange(fieldName, nil, nil)
-}
-
-func (i *IndexReader) FieldDictRange(fieldName string, startTerm []byte, endTerm []byte) (index.FieldDict, error) {
-	fieldIndex, fieldExists := i.index.fieldCache.FieldNamed(fieldName, false)
-	if fieldExists {
-		return newUpsideDownCouchFieldDict(i, uint16(fieldIndex), startTerm, endTerm)
-	}
-	return newUpsideDownCouchFieldDict(i, ^uint16(0), []byte{ByteSeparator}, []byte{})
-}
-
-func (i *IndexReader) FieldDictPrefix(fieldName string, termPrefix []byte) (index.FieldDict, error) {
-	return i.FieldDictRange(fieldName, termPrefix, termPrefix)
-}
-
-func (i *IndexReader) DocIDReaderAll() (index.DocIDReader, error) {
-	return newUpsideDownCouchDocIDReader(i)
 }
 
 func (i *IndexReader) DocIDReaderOnly(ids []string) (index.DocIDReader, error) {
@@ -71,7 +51,7 @@ func (i *IndexReader) Document(id string) (doc *document.Document, err error) {
 	doc = document.NewDocument(id)
 	storedRow := NewStoredRow([]byte(id), 0, []uint64{}, 'x', nil)
 	storedRowScanPrefix := storedRow.ScanPrefixForDoc()
-	it := i.kvreader.PrefixIterator(storedRowScanPrefix)
+	it := i.kvreader.PrefixIterator("s", storedRowScanPrefix)
 	defer func() {
 		if cerr := it.Close(); err == nil && cerr != nil {
 			err = cerr
@@ -114,17 +94,7 @@ func (i *IndexReader) DocumentVisitFieldTerms(id index.IndexInternalID, fields [
 		doc: id,
 	}
 
-	keyBuf := GetRowBuffer()
-	if tempRow.KeySize() > len(keyBuf) {
-		keyBuf = make([]byte, 2*tempRow.KeySize())
-	}
-	defer PutRowBuffer(keyBuf)
-	keySize, err := tempRow.KeyTo(keyBuf)
-	if err != nil {
-		return err
-	}
-
-	value, err := i.kvreader.Get(keyBuf[:keySize])
+	value, err := i.kvreader.Get(tempRow.Table(), tempRow.Key())
 	if err != nil {
 		return err
 	}
@@ -139,9 +109,25 @@ func (i *IndexReader) DocumentVisitFieldTerms(id index.IndexInternalID, fields [
 	})
 }
 
+func (i *IndexReader) FieldDict(fieldName string) (index.FieldDict, error) {
+	return i.FieldDictRange(fieldName, nil, nil)
+}
+
+func (i *IndexReader) FieldDictRange(fieldName string, startTerm []byte, endTerm []byte) (index.FieldDict, error) {
+	fieldIndex, fieldExists := i.index.fieldCache.FieldNamed(fieldName, false)
+	if fieldExists {
+		return newUpsideDownCouchFieldDict(i, uint16(fieldIndex), startTerm, endTerm)
+	}
+	return newUpsideDownCouchFieldDict(i, ^uint16(0), []byte{ByteSeparator}, []byte{})
+}
+
+func (i *IndexReader) FieldDictPrefix(fieldName string, termPrefix []byte) (index.FieldDict, error) {
+	return i.FieldDictRange(fieldName, termPrefix, termPrefix)
+}
+
 func (i *IndexReader) Fields() (fields []string, err error) {
 	fields = make([]string, 0)
-	it := i.kvreader.PrefixIterator([]byte{'f'})
+	it := i.kvreader.PrefixIterator("f", []byte{})
 	defer func() {
 		if cerr := it.Close(); err == nil && cerr != nil {
 			err = cerr
@@ -150,7 +136,7 @@ func (i *IndexReader) Fields() (fields []string, err error) {
 	key, val, valid := it.Current()
 	for valid {
 		var row UpsideDownCouchRow
-		row, err = ParseFromKeyValue(key, val)
+		row, err = NewFieldRowKV(key, val)
 		if err != nil {
 			fields = nil
 			return
@@ -170,7 +156,7 @@ func (i *IndexReader) Fields() (fields []string, err error) {
 
 func (i *IndexReader) GetInternal(key []byte) ([]byte, error) {
 	internalRow := NewInternalRow(key, nil)
-	return i.kvreader.Get(internalRow.Key())
+	return i.kvreader.Get("i", internalRow.Key())
 }
 
 func (i *IndexReader) DocCount() (uint64, error) {

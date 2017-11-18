@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/analysis"
+	"github.com/wrble/flock/analysis"
 )
 
 // the following tests come from the lucene

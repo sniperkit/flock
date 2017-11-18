@@ -1,8 +1,8 @@
 package fr
 
 import (
-	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/analysis"
+	"github.com/wrble/flock/registry"
 )
 
 const StopName = "stop_fr"

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/registry"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/registry"
 )
 
 const (
@@ -39,10 +39,11 @@ type Store struct {
 
 	defaultWriteOptions *opt.WriteOptions
 	defaultReadOptions  *opt.ReadOptions
+
+	debug bool
 }
 
 func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, error) {
-
 	path, ok := config["path"].(string)
 	if !ok {
 		return nil, fmt.Errorf("must specify path")
@@ -68,6 +69,7 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 		mo:                  mo,
 		defaultReadOptions:  &opt.ReadOptions{},
 		defaultWriteOptions: &opt.WriteOptions{},
+		debug:               false,
 	}
 	rv.defaultWriteOptions.Sync = true
 	return &rv, nil

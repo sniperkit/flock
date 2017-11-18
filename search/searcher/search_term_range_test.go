@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/search"
 )
 
 func TestTermRangeSearch(t *testing.T) {
@@ -169,7 +169,6 @@ func TestTermRangeSearch(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		searcher, err := NewTermRangeSearcher(twoDocIndexReader, test.min, test.max,
 			&test.inclusiveMin, &test.inclusiveMax, test.field, 1.0, search.SearcherOptions{Explain: true})
 		if err != nil {
@@ -195,7 +194,6 @@ func TestTermRangeSearch(t *testing.T) {
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("expected: %v, got %v for test %#v", test.want, got, test)
 		}
-
 	}
 
 }

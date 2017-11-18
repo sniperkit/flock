@@ -16,10 +16,12 @@
 
 package bleve
 
-import "github.com/blevesearch/bleve/index/store/boltdb"
+import (
+	"github.com/wrble/flock/index/store/goleveldb"
+)
 
 // in normal environments we configure boltdb as the default storage
 func initDisk() {
 	// default kv store
-	Config.DefaultKVStore = boltdb.Name
+	Config.DefaultKVStore = goleveldb.Name
 }

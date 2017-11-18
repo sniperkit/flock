@@ -47,18 +47,21 @@ type KVReader interface {
 	// Get returns the value associated with the key
 	// If the key does not exist, nil is returned.
 	// The caller owns the bytes returned.
-	Get(key []byte) ([]byte, error)
+	Get(table string, key []byte) ([]byte, error)
 
 	// MultiGet retrieves multiple values in one call.
-	MultiGet(keys [][]byte) ([][]byte, error)
+	MultiGet(table string, keys [][]byte) ([][]byte, error)
 
 	// PrefixIterator returns a KVIterator that will
 	// visit all K/V pairs with the provided prefix
-	PrefixIterator(prefix []byte) KVIterator
+	PrefixIterator(table string, prefix []byte) KVIterator
 
 	// RangeIterator returns a KVIterator that will
 	// visit all K/V pairs >= start AND < end
-	RangeIterator(start, end []byte) KVIterator
+	RangeIterator(table string, start, end []byte) KVIterator
+
+	// Fetch the count of documents in the index
+	DocCount() (uint64, error)
 
 	// Close closes the iterator
 	Close() error
@@ -109,7 +112,7 @@ type KVWriter interface {
 	// the batch.  Once the batch is either executed or closed, the
 	// associated byte array should no longer be accessed by the
 	// caller.
-	NewBatchEx(KVBatchOptions) ([]byte, KVBatch, error)
+	NewBatchEx(KVBatchOptions) (KVBatch, error)
 
 	// ExecuteBatch will execute the KVBatch, the provided KVBatch **MUST** have
 	// been created by the same KVStore (though not necessarily the same KVWriter)
@@ -123,11 +126,6 @@ type KVWriter interface {
 // KVBatchOptions provides the KVWriter.NewBatchEx() method with batch
 // preparation and preallocation information.
 type KVBatchOptions struct {
-	// TotalBytes is the sum of key and value bytes needed by the
-	// caller for the entire batch.  It affects the size of the
-	// returned byte array of KVWrite.NewBatchEx().
-	TotalBytes int
-
 	// NumSets is the number of Set() calls the caller will invoke on
 	// the KVBatch.
 	NumSets int
@@ -146,16 +144,16 @@ type KVBatch interface {
 
 	// Set updates the key with the specified value
 	// both key and value []byte may be reused as soon as this call returns
-	Set(key, val []byte)
+	Set(table string, key, val []byte)
 
 	// Delete removes the specified key
 	// the key []byte may be reused as soon as this call returns
-	Delete(key []byte)
+	Delete(table string, key []byte)
 
 	// Merge merges old value with the new value at the specified key
 	// as prescribed by the KVStores merge operator
 	// both key and value []byte may be reused as soon as this call returns
-	Merge(key, val []byte)
+	Merge(table string, key, val []byte)
 
 	// Reset frees resources for this batch and allows reuse
 	Reset()

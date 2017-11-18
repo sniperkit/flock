@@ -24,16 +24,16 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/registry"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/collector"
-	"github.com/blevesearch/bleve/search/facet"
-	"github.com/blevesearch/bleve/search/highlight"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/registry"
+	"github.com/wrble/flock/search"
+	"github.com/wrble/flock/search/collector"
+	"github.com/wrble/flock/search/facet"
+	"github.com/wrble/flock/search/highlight"
 )
 
 type indexImpl struct {
@@ -49,6 +49,7 @@ type indexImpl struct {
 
 const storePath = "store"
 
+var InternalTable = "i"
 var mappingInternalKey = []byte("_mapping")
 
 func indexStorePath(path string) string {

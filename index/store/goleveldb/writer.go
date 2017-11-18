@@ -17,8 +17,8 @@ package goleveldb
 import (
 	"fmt"
 
-	"github.com/blevesearch/bleve/index/store"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/wrble/flock/index/store"
 )
 
 type Writer struct {
@@ -34,8 +34,8 @@ func (w *Writer) NewBatch() store.KVBatch {
 	return &rv
 }
 
-func (w *Writer) NewBatchEx(options store.KVBatchOptions) ([]byte, store.KVBatch, error) {
-	return make([]byte, options.TotalBytes), w.NewBatch(), nil
+func (w *Writer) NewBatchEx(options store.KVBatchOptions) (store.KVBatch, error) {
+	return w.NewBatch(), nil
 }
 
 func (w *Writer) ExecuteBatch(b store.KVBatch) error {
@@ -56,6 +56,9 @@ func (w *Writer) ExecuteBatch(b store.KVBatch) error {
 			return fmt.Errorf("merge operator returned failure")
 		}
 		// add the final merge to this batch
+		if w.store.debug {
+			fmt.Println("PUT MERGE", string(kb), "|", string(mergedVal))
+		}
 		batch.batch.Put(kb, mergedVal)
 	}
 

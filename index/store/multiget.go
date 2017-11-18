@@ -17,11 +17,11 @@ package store
 // MultiGet is a helper function to retrieve mutiple keys from a
 // KVReader, and might be used by KVStore implementations that don't
 // have a native multi-get facility.
-func MultiGet(kvreader KVReader, keys [][]byte) ([][]byte, error) {
+func MultiGet(kvreader KVReader, table string, keys [][]byte) ([][]byte, error) {
 	vals := make([][]byte, 0, len(keys))
 
 	for i, key := range keys {
-		val, err := kvreader.Get(key)
+		val, err := kvreader.Get(table, key)
 		if err != nil {
 			return nil, err
 		}

@@ -45,11 +45,12 @@ func NewEmulatedMerge(mo MergeOperator) *EmulatedMerge {
 	}
 }
 
-func (m *EmulatedMerge) Merge(key, val []byte) {
-	ops, ok := m.Merges[string(key)]
+func (m *EmulatedMerge) Merge(table string, key, val []byte) {
+	comb := Combine(table, key)
+	ops, ok := m.Merges[string(comb)]
 	if ok && len(ops) > 0 {
 		last := ops[len(ops)-1]
-		mergedVal, partialMergeOk := m.mo.PartialMerge(key, last, val)
+		mergedVal, partialMergeOk := m.mo.PartialMerge(comb, last, val)
 		if partialMergeOk {
 			// replace last entry with the result of the merge
 			ops[len(ops)-1] = mergedVal
@@ -60,5 +61,5 @@ func (m *EmulatedMerge) Merge(key, val []byte) {
 	} else {
 		ops = [][]byte{val}
 	}
-	m.Merges[string(key)] = ops
+	m.Merges[string(comb)] = ops
 }

@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index/store"
 )
 
 var ErrorUnknownStorageType = fmt.Errorf("unknown storage type")
@@ -53,12 +53,6 @@ type DocumentFieldTermVisitor func(field string, term []byte)
 type IndexReader interface {
 	TermFieldReader(term []byte, field string, includeFreq, includeNorm, includeTermVectors bool) (TermFieldReader, error)
 
-	// DocIDReader returns an iterator over all doc ids
-	// The caller must close returned instance to release associated resources.
-	DocIDReaderAll() (DocIDReader, error)
-
-	DocIDReaderOnly(ids []string) (DocIDReader, error)
-
 	FieldDict(field string) (FieldDict, error)
 
 	// FieldDictRange is currently defined to include the start and end terms
@@ -76,10 +70,6 @@ type IndexReader interface {
 
 	ExternalID(id IndexInternalID) (string, error)
 	InternalID(id string) (IndexInternalID, error)
-
-	DumpAll() chan interface{}
-	DumpDoc(id string) chan interface{}
-	DumpFields() chan interface{}
 
 	Close() error
 }

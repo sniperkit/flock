@@ -18,9 +18,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/boltdb"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
 )
 
 func TestIndexReader(t *testing.T) {
@@ -32,7 +32,7 @@ func TestIndexReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,6 +104,9 @@ func TestIndexReader(t *testing.T) {
 	var match *index.TermFieldDoc
 	var actualCount uint64
 	match, err = reader.Next(nil)
+	if err != nil {
+		t.Errorf("Error nexting term field reader: %v", err)
+	}
 	for err == nil && match != nil {
 		match, err = reader.Next(nil)
 		if err != nil {
@@ -207,7 +210,7 @@ func TestIndexDocIdReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,60 +253,10 @@ func TestIndexDocIdReader(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-
-	// first get all doc ids
-	reader, err := indexReader.DocIDReaderAll()
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	id, err := reader.Next()
-	count := uint64(0)
-	for id != nil {
-		count++
-		id, err = reader.Next()
-	}
-	if count != expectedCount {
-		t.Errorf("expected %d, got %d", expectedCount, count)
-	}
-
-	// try it again, but jump to the second doc this time
-	reader2, err := indexReader.DocIDReaderAll()
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader2.Close()
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	id, err = reader2.Advance(index.IndexInternalID("2"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("2")) {
-		t.Errorf("expected to find id '2', got '%s'", id)
-	}
-
-	id, err = reader2.Advance(index.IndexInternalID("3"))
-	if err != nil {
-		t.Error(err)
-	}
-	if id != nil {
-		t.Errorf("expected to find id '', got '%s'", id)
-	}
 }
 
 func TestCrashBadBackIndexRow(t *testing.T) {
-	br, err := NewBackIndexRowKV([]byte{byte('b'), byte('a'), ByteSeparator}, []byte{})
+	br, err := NewBackIndexRowKV([]byte{byte('a'), ByteSeparator}, []byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,7 +274,7 @@ func TestIndexDocIdOnlyReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,154 +329,4 @@ func TestIndexDocIdOnlyReader(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-
-	onlyIds := []string{"1", "5", "9"}
-	reader, err := indexReader.DocIDReaderOnly(onlyIds)
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	id, err := reader.Next()
-	count := uint64(0)
-	for id != nil {
-		count++
-		id, err = reader.Next()
-	}
-	if count != 3 {
-		t.Errorf("expected 3, got %d", count)
-	}
-
-	// try it again, but jump
-	reader2, err := indexReader.DocIDReaderOnly(onlyIds)
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader2.Close()
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	id, err = reader2.Advance(index.IndexInternalID("5"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("5")) {
-		t.Errorf("expected to find id '5', got '%s'", id)
-	}
-
-	id, err = reader2.Advance(index.IndexInternalID("a"))
-	if err != nil {
-		t.Error(err)
-	}
-	if id != nil {
-		t.Errorf("expected to find id '', got '%s'", id)
-	}
-
-	// some keys aren't actually there
-	onlyIds = []string{"0", "2", "4", "5", "6", "8", "a"}
-	reader3, err := indexReader.DocIDReaderOnly(onlyIds)
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader3.Close()
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	id, err = reader3.Next()
-	count = uint64(0)
-	for id != nil {
-		count++
-		id, err = reader3.Next()
-	}
-	if count != 1 {
-		t.Errorf("expected 1, got %d", count)
-	}
-
-	// mix advance and next
-	onlyIds = []string{"0", "1", "3", "5", "6", "9"}
-	reader4, err := indexReader.DocIDReaderOnly(onlyIds)
-	if err != nil {
-		t.Errorf("Error accessing doc id reader: %v", err)
-	}
-	defer func() {
-		err := reader4.Close()
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	// first key is "1"
-	id, err = reader4.Next()
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("1")) {
-		t.Errorf("expected to find id '1', got '%s'", id)
-	}
-
-	// advancing to key we dont have gives next
-	id, err = reader4.Advance(index.IndexInternalID("2"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("3")) {
-		t.Errorf("expected to find id '3', got '%s'", id)
-	}
-
-	// next after advance works
-	id, err = reader4.Next()
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("5")) {
-		t.Errorf("expected to find id '5', got '%s'", id)
-	}
-
-	// advancing to key we do have works
-	id, err = reader4.Advance(index.IndexInternalID("9"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("9")) {
-		t.Errorf("expected to find id '9', got '%s'", id)
-	}
-
-	// advance backwards at end
-	id, err = reader4.Advance(index.IndexInternalID("4"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("5")) {
-		t.Errorf("expected to find id '5', got '%s'", id)
-	}
-
-	// next after advance works
-	id, err = reader4.Next()
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("9")) {
-		t.Errorf("expected to find id '9', got '%s'", id)
-	}
-
-	// advance backwards to key that exists, but not in only set
-	id, err = reader4.Advance(index.IndexInternalID("7"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !id.Equals(index.IndexInternalID("9")) {
-		t.Errorf("expected to find id '9', got '%s'", id)
-	}
-
 }

@@ -15,10 +15,12 @@
 package bleve
 
 import (
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/mapping"
+	"os"
+
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/mapping"
 	"golang.org/x/net/context"
 )
 
@@ -219,13 +221,14 @@ func New(path string, mapping mapping.IndexMapping) (Index, error) {
 	return newIndexUsing(path, mapping, Config.DefaultIndexType, Config.DefaultKVStore, nil)
 }
 
-// NewMemOnly creates a memory-only index.
-// The contents of the index is NOT persisted,
-// and will be lost once closed.
-// The provided mapping will be used for all
-// Index/Search operations.
-func NewMemOnly(mapping mapping.IndexMapping) (Index, error) {
-	return newIndexUsing("", mapping, Config.DefaultIndexType, Config.DefaultMemKVStore, nil)
+// Create a temp index that handles it's own cleanup and idempotency
+func NewTempIndex(mapping mapping.IndexMapping) (Index, error) {
+	path := "memonly"
+	err := os.RemoveAll(path)
+	if err != nil {
+		return nil, err
+	}
+	return newIndexUsing(path, mapping, Config.DefaultIndexType, Config.DefaultMemKVStore, nil)
 }
 
 // NewUsing creates index at the specified path,

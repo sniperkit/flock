@@ -15,8 +15,10 @@
 package goleveldb
 
 import (
-	"github.com/blevesearch/bleve/index/store"
+	"fmt"
+
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/wrble/flock/index/store"
 )
 
 type Batch struct {
@@ -25,16 +27,19 @@ type Batch struct {
 	batch *leveldb.Batch
 }
 
-func (b *Batch) Set(key, val []byte) {
-	b.batch.Put(key, val)
+func (b *Batch) Set(table string, key, val []byte) {
+	if b.store.debug {
+		fmt.Println("SET", table, string(key), string(val))
+	}
+	b.batch.Put(store.Combine(table, key), val)
 }
 
-func (b *Batch) Delete(key []byte) {
-	b.batch.Delete(key)
+func (b *Batch) Delete(table string, key []byte) {
+	b.batch.Delete(store.Combine(table, key))
 }
 
-func (b *Batch) Merge(key, val []byte) {
-	b.merge.Merge(key, val)
+func (b *Batch) Merge(table string, key, val []byte) {
+	b.merge.Merge(table, key, val)
 }
 
 func (b *Batch) Reset() {

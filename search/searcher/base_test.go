@@ -18,12 +18,12 @@ import (
 	"math"
 	"regexp"
 
-	"github.com/blevesearch/bleve/analysis"
-	regexpTokenizer "github.com/blevesearch/bleve/analysis/tokenizer/regexp"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/gtreap"
-	"github.com/blevesearch/bleve/index/upsidedown"
+	"github.com/wrble/flock/analysis"
+	regexpTokenizer "github.com/wrble/flock/analysis/tokenizer/regexp"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 var twoDocIndex index.Index //= upside_down.NewUpsideDownCouch(inmem.MustOpen())
@@ -32,9 +32,9 @@ func init() {
 	analysisQueue := index.NewAnalysisQueue(1)
 	var err error
 	twoDocIndex, err = upsidedown.NewUpsideDownCouch(
-		gtreap.Name,
+		goleveldb.Name,
 		map[string]interface{}{
-			"path": "",
+			"path": "testidx",
 		}, analysisQueue)
 	if err != nil {
 		panic(err)

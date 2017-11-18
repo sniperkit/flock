@@ -18,11 +18,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/gtreap"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/upsidedown"
+	"github.com/wrble/flock/search"
 )
 
 func TestTermSearcher(t *testing.T) {
@@ -34,9 +34,9 @@ func TestTermSearcher(t *testing.T) {
 
 	analysisQueue := index.NewAnalysisQueue(1)
 	i, err := upsidedown.NewUpsideDownCouch(
-		gtreap.Name,
+		goleveldb.Name,
 		map[string]interface{}{
-			"path": "",
+			"path": "idx",
 		},
 		analysisQueue)
 	if err != nil {

@@ -18,9 +18,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/boltdb"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
 )
 
 func TestIndexFieldDict(t *testing.T) {
@@ -32,7 +32,7 @@ func TestIndexFieldDict(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}

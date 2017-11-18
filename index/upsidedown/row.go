@@ -29,35 +29,11 @@ const ByteSeparator byte = 0xff
 type UpsideDownCouchRowStream chan UpsideDownCouchRow
 
 type UpsideDownCouchRow interface {
-	KeySize() int
-	KeyTo([]byte) (int, error)
+	Table() string
 	Key() []byte
 	Value() []byte
 	ValueSize() int
 	ValueTo([]byte) (int, error)
-}
-
-func ParseFromKeyValue(key, value []byte) (UpsideDownCouchRow, error) {
-	if len(key) > 0 {
-		switch key[0] {
-		case 'v':
-			return NewVersionRowKV(key, value)
-		case 'f':
-			return NewFieldRowKV(key, value)
-		case 'd':
-			return NewDictionaryRowKV(key, value)
-		case 't':
-			return NewTermFrequencyRowKV(key, value)
-		case 'b':
-			return NewBackIndexRowKV(key, value)
-		case 's':
-			return NewStoredRowKV(key, value)
-		case 'i':
-			return NewInternalRowKV(key, value)
-		}
-		return nil, fmt.Errorf("Unknown field type '%s'", string(key[0]))
-	}
-	return nil, fmt.Errorf("Invalid empty key")
 }
 
 // VERSION
@@ -66,17 +42,12 @@ type VersionRow struct {
 	version uint8
 }
 
+func (v *VersionRow) Table() string {
+	return "v"
+}
+
 func (v *VersionRow) Key() []byte {
-	return []byte{'v'}
-}
-
-func (v *VersionRow) KeySize() int {
-	return 1
-}
-
-func (v *VersionRow) KeyTo(buf []byte) (int, error) {
-	buf[0] = 'v'
-	return 1, nil
+	return []byte(StaticKey)
 }
 
 func (v *VersionRow) Value() []byte {
@@ -119,20 +90,12 @@ type InternalRow struct {
 	val []byte
 }
 
+func (v *InternalRow) Table() string {
+	return "i"
+}
+
 func (i *InternalRow) Key() []byte {
-	buf := make([]byte, i.KeySize())
-	size, _ := i.KeyTo(buf)
-	return buf[:size]
-}
-
-func (i *InternalRow) KeySize() int {
-	return len(i.key) + 1
-}
-
-func (i *InternalRow) KeyTo(buf []byte) (int, error) {
-	buf[0] = 'i'
-	actual := copy(buf[1:], i.key)
-	return 1 + actual, nil
+	return i.key
 }
 
 func (i *InternalRow) Value() []byte {
@@ -173,20 +136,14 @@ type FieldRow struct {
 	name  string
 }
 
+func (v *FieldRow) Table() string {
+	return "f"
+}
+
 func (f *FieldRow) Key() []byte {
-	buf := make([]byte, f.KeySize())
-	size, _ := f.KeyTo(buf)
-	return buf[:size]
-}
-
-func (f *FieldRow) KeySize() int {
-	return 3
-}
-
-func (f *FieldRow) KeyTo(buf []byte) (int, error) {
-	buf[0] = 'f'
-	binary.LittleEndian.PutUint16(buf[1:3], f.index)
-	return 3, nil
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, f.index)
+	return buf
 }
 
 func (f *FieldRow) Value() []byte {
@@ -218,11 +175,7 @@ func NewFieldRowKV(key, value []byte) (*FieldRow, error) {
 	rv := FieldRow{}
 
 	buf := bytes.NewBuffer(key)
-	_, err := buf.ReadByte() // type
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Read(buf, binary.LittleEndian, &rv.index)
+	err := binary.Read(buf, binary.LittleEndian, &rv.index)
 	if err != nil {
 		return nil, err
 	}
@@ -247,29 +200,19 @@ type DictionaryRow struct {
 	field uint16
 }
 
-func (dr *DictionaryRow) Key() []byte {
-	buf := make([]byte, dr.KeySize())
-	size, _ := dr.KeyTo(buf)
-	return buf[:size]
+func (v *DictionaryRow) Table() string {
+	return "d"
 }
 
-func (dr *DictionaryRow) KeySize() int {
-	return dictionaryRowKeySize(dr.term)
+func (dr *DictionaryRow) Key() []byte {
+	buf := make([]byte, dictionaryRowKeySize(dr.term))
+	binary.LittleEndian.PutUint16(buf, dr.field)
+	copy(buf[2:], dr.term)
+	return buf
 }
 
 func dictionaryRowKeySize(term []byte) int {
-	return len(term) + 3
-}
-
-func (dr *DictionaryRow) KeyTo(buf []byte) (int, error) {
-	return dictionaryRowKeyTo(buf, dr.field, dr.term), nil
-}
-
-func dictionaryRowKeyTo(buf []byte, field uint16, term []byte) int {
-	buf[0] = 'd'
-	binary.LittleEndian.PutUint16(buf[1:3], field)
-	size := copy(buf[3:], term)
-	return size + 3
+	return len(term) + 2
 }
 
 func (dr *DictionaryRow) Value() []byte {
@@ -323,11 +266,11 @@ func NewDictionaryRowK(key []byte) (*DictionaryRow, error) {
 }
 
 func (dr *DictionaryRow) parseDictionaryK(key []byte) error {
-	dr.field = binary.LittleEndian.Uint16(key[1:3])
+	dr.field = binary.LittleEndian.Uint16(key[:2])
 	if dr.term != nil {
 		dr.term = dr.term[:0]
 	}
-	dr.term = append(dr.term, key[3:]...)
+	dr.term = append(dr.term, key[2:]...)
 	return nil
 }
 
@@ -371,6 +314,10 @@ type TermFrequencyRow struct {
 	field   uint16
 }
 
+func (v *TermFrequencyRow) Table() string {
+	return "t"
+}
+
 func (tfr *TermFrequencyRow) Term() []byte {
 	return tfr.term
 }
@@ -380,41 +327,34 @@ func (tfr *TermFrequencyRow) Freq() uint64 {
 }
 
 func (tfr *TermFrequencyRow) ScanPrefixForField() []byte {
-	buf := make([]byte, 3)
-	buf[0] = 't'
-	binary.LittleEndian.PutUint16(buf[1:3], tfr.field)
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, tfr.field)
 	return buf
 }
 
 func (tfr *TermFrequencyRow) ScanPrefixForFieldTermPrefix() []byte {
-	buf := make([]byte, 3+len(tfr.term))
-	buf[0] = 't'
-	binary.LittleEndian.PutUint16(buf[1:3], tfr.field)
-	copy(buf[3:], tfr.term)
+	buf := make([]byte, 2+len(tfr.term))
+	binary.LittleEndian.PutUint16(buf[0:2], tfr.field)
+	copy(buf[2:], tfr.term)
 	return buf
 }
 
 func (tfr *TermFrequencyRow) ScanPrefixForFieldTerm() []byte {
-	buf := make([]byte, 3+len(tfr.term)+1)
-	buf[0] = 't'
-	binary.LittleEndian.PutUint16(buf[1:3], tfr.field)
-	termLen := copy(buf[3:], tfr.term)
-	buf[3+termLen] = ByteSeparator
+	buf := make([]byte, 3+len(tfr.term))
+	binary.LittleEndian.PutUint16(buf[0:2], tfr.field)
+	termLen := copy(buf[2:], tfr.term)
+	buf[2+termLen] = ByteSeparator
 	return buf
 }
 
 func (tfr *TermFrequencyRow) Key() []byte {
-	buf := make([]byte, tfr.KeySize())
+	buf := make([]byte, termFrequencyRowKeySize(tfr.term, tfr.doc))
 	size, _ := tfr.KeyTo(buf)
 	return buf[:size]
 }
 
-func (tfr *TermFrequencyRow) KeySize() int {
-	return termFrequencyRowKeySize(tfr.term, tfr.doc)
-}
-
 func termFrequencyRowKeySize(term, doc []byte) int {
-	return 3 + len(term) + 1 + len(doc)
+	return 3 + len(term) + len(doc)
 }
 
 func (tfr *TermFrequencyRow) KeyTo(buf []byte) (int, error) {
@@ -422,36 +362,16 @@ func (tfr *TermFrequencyRow) KeyTo(buf []byte) (int, error) {
 }
 
 func termFrequencyRowKeyTo(buf []byte, field uint16, term, doc []byte) int {
-	buf[0] = 't'
-	binary.LittleEndian.PutUint16(buf[1:3], field)
-	termLen := copy(buf[3:], term)
-	buf[3+termLen] = ByteSeparator
-	docLen := copy(buf[3+termLen+1:], doc)
-	return 3 + termLen + 1 + docLen
-}
-
-func (tfr *TermFrequencyRow) KeyAppendTo(buf []byte) ([]byte, error) {
-	keySize := tfr.KeySize()
-	if cap(buf) < keySize {
-		buf = make([]byte, keySize)
-	}
-	actualSize, err := tfr.KeyTo(buf[0:keySize])
-	return buf[0:actualSize], err
+	binary.LittleEndian.PutUint16(buf[0:2], field)
+	termLen := copy(buf[2:], term)
+	buf[2+termLen] = ByteSeparator
+	docLen := copy(buf[2+termLen+1:], doc)
+	return 2 + termLen + 1 + docLen
 }
 
 func (tfr *TermFrequencyRow) DictionaryRowKey() []byte {
 	dr := NewDictionaryRow(tfr.term, tfr.field, 0)
 	return dr.Key()
-}
-
-func (tfr *TermFrequencyRow) DictionaryRowKeySize() int {
-	dr := NewDictionaryRow(tfr.term, tfr.field, 0)
-	return dr.KeySize()
-}
-
-func (tfr *TermFrequencyRow) DictionaryRowKeyTo(buf []byte) (int, error) {
-	dr := NewDictionaryRow(tfr.term, tfr.field, 0)
-	return dr.KeyTo(buf)
 }
 
 func (tfr *TermFrequencyRow) Value() []byte {
@@ -554,7 +474,7 @@ func (tfr *TermFrequencyRow) parseK(key []byte) error {
 }
 
 func (tfr *TermFrequencyRow) parseKDoc(key []byte, term []byte) error {
-	tfr.doc = key[3+len(term)+1:]
+	tfr.doc = key[3+len(term):]
 	if len(tfr.doc) <= 0 {
 		return fmt.Errorf("invalid term frequency key, empty docid")
 	}
@@ -662,6 +582,10 @@ type BackIndexRow struct {
 	storedEntries []*BackIndexStoreEntry
 }
 
+func (v *BackIndexRow) Table() string {
+	return "b"
+}
+
 func (br *BackIndexRow) AllTermKeys() [][]byte {
 	if br == nil {
 		return nil
@@ -689,19 +613,7 @@ func (br *BackIndexRow) AllStoredKeys() [][]byte {
 }
 
 func (br *BackIndexRow) Key() []byte {
-	buf := make([]byte, br.KeySize())
-	size, _ := br.KeyTo(buf)
-	return buf[:size]
-}
-
-func (br *BackIndexRow) KeySize() int {
-	return len(br.doc) + 1
-}
-
-func (br *BackIndexRow) KeyTo(buf []byte) (int, error) {
-	buf[0] = 'b'
-	used := copy(buf[1:], br.doc)
-	return used + 1, nil
+	return br.doc
 }
 
 func (br *BackIndexRow) Value() []byte {
@@ -740,12 +652,8 @@ func NewBackIndexRow(docID []byte, entries []*BackIndexTermsEntry, storedFields 
 
 func NewBackIndexRowKV(key, value []byte) (*BackIndexRow, error) {
 	rv := BackIndexRow{}
-
 	buf := bytes.NewBuffer(key)
-	_, err := buf.ReadByte() // type
-	if err != nil {
-		return nil, err
-	}
+	var err error
 
 	rv.doc, err = buf.ReadBytes(ByteSeparator)
 	if err == io.EOF && len(rv.doc) < 1 {
@@ -778,6 +686,10 @@ type StoredRow struct {
 	value          []byte
 }
 
+func (v *StoredRow) Table() string {
+	return "s"
+}
+
 func (s *StoredRow) Key() []byte {
 	buf := make([]byte, s.KeySize())
 	size, _ := s.KeyTo(buf)
@@ -785,16 +697,15 @@ func (s *StoredRow) Key() []byte {
 }
 
 func (s *StoredRow) KeySize() int {
-	return 1 + len(s.doc) + 1 + 2 + (binary.MaxVarintLen64 * len(s.arrayPositions))
+	return len(s.doc) + 1 + 2 + (binary.MaxVarintLen64 * len(s.arrayPositions))
 }
 
 func (s *StoredRow) KeyTo(buf []byte) (int, error) {
 	docLen := len(s.doc)
-	buf[0] = 's'
-	copy(buf[1:], s.doc)
-	buf[1+docLen] = ByteSeparator
-	binary.LittleEndian.PutUint16(buf[1+docLen+1:], s.field)
-	bytesUsed := 1 + docLen + 1 + 2
+	copy(buf, s.doc)
+	buf[docLen] = ByteSeparator
+	binary.LittleEndian.PutUint16(buf[docLen+1:], s.field)
+	bytesUsed := docLen + 1 + 2
 	for _, arrayPosition := range s.arrayPositions {
 		varbytes := binary.PutUvarint(buf[bytesUsed:], arrayPosition)
 		bytesUsed += varbytes
@@ -824,10 +735,9 @@ func (s *StoredRow) String() string {
 
 func (s *StoredRow) ScanPrefixForDoc() []byte {
 	docLen := len(s.doc)
-	buf := make([]byte, 1+docLen+1)
-	buf[0] = 's'
-	copy(buf[1:], s.doc)
-	buf[1+docLen] = ByteSeparator
+	buf := make([]byte, docLen+1)
+	copy(buf, s.doc)
+	buf[docLen] = ByteSeparator
 	return buf
 }
 
@@ -845,11 +755,7 @@ func NewStoredRowK(key []byte) (*StoredRow, error) {
 	rv := StoredRow{}
 
 	buf := bytes.NewBuffer(key)
-	_, err := buf.ReadByte() // type
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	rv.doc, err = buf.ReadBytes(ByteSeparator)
 	if len(rv.doc) < 2 { // 1 for min doc id length, 1 for separator
 		err = fmt.Errorf("invalid doc length 0")

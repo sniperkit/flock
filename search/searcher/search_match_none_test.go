@@ -17,7 +17,7 @@ package searcher
 import (
 	"testing"
 
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/search"
 )
 
 func TestMatchNoneSearch(t *testing.T) {

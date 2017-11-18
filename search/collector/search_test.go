@@ -15,9 +15,9 @@
 package collector
 
 import (
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/search"
 )
 
 type stubSearcher struct {
@@ -80,14 +80,6 @@ func (sr *stubReader) TermFieldReader(term []byte, field string, includeFreq, in
 	return nil, nil
 }
 
-func (sr *stubReader) DocIDReaderAll() (index.DocIDReader, error) {
-	return nil, nil
-}
-
-func (sr *stubReader) DocIDReaderOnly(ids []string) (index.DocIDReader, error) {
-	return nil, nil
-}
-
 func (sr *stubReader) FieldDict(field string) (index.FieldDict, error) {
 	return nil, nil
 }
@@ -126,14 +118,6 @@ func (sr *stubReader) ExternalID(id index.IndexInternalID) (string, error) {
 
 func (sr *stubReader) InternalID(id string) (index.IndexInternalID, error) {
 	return []byte(id), nil
-}
-
-func (sr *stubReader) DumpAll() chan interface{} {
-	return nil
-}
-
-func (sr *stubReader) DumpDoc(id string) chan interface{} {
-	return nil
 }
 
 func (sr *stubReader) DumpFields() chan interface{} {

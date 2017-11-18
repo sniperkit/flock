@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/search"
 )
 
 type MatchQuery struct {

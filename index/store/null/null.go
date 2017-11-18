@@ -15,8 +15,8 @@
 package null
 
 import (
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/registry"
 )
 
 const Name = "null"
@@ -41,19 +41,23 @@ func (i *Store) Writer() (store.KVWriter, error) {
 
 type reader struct{}
 
-func (r *reader) Get(key []byte) ([]byte, error) {
+func (r *reader) Get(table string, key []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (r *reader) MultiGet(keys [][]byte) ([][]byte, error) {
+func (r *reader) DocCount() (uint64, error) {
+	return 0, nil
+}
+
+func (r *reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {
 	return make([][]byte, len(keys)), nil
 }
 
-func (r *reader) PrefixIterator(prefix []byte) store.KVIterator {
+func (r *reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
 	return &iterator{}
 }
 
-func (r *reader) RangeIterator(start, end []byte) store.KVIterator {
+func (r *reader) RangeIterator(table string, start, end []byte) store.KVIterator {
 	return &iterator{}
 }
 
@@ -89,11 +93,11 @@ func (i *iterator) Close() error {
 
 type batch struct{}
 
-func (i *batch) Set(key, val []byte)   {}
-func (i *batch) Delete(key []byte)     {}
-func (i *batch) Merge(key, val []byte) {}
-func (i *batch) Reset()                {}
-func (i *batch) Close() error          { return nil }
+func (i *batch) Set(table string, key, val []byte)   {}
+func (i *batch) Delete(table string, key []byte)     {}
+func (i *batch) Merge(table string, key, val []byte) {}
+func (i *batch) Reset()                              {}
+func (i *batch) Close() error                        { return nil }
 
 type writer struct{}
 
@@ -101,8 +105,8 @@ func (w *writer) NewBatch() store.KVBatch {
 	return &batch{}
 }
 
-func (w *writer) NewBatchEx(options store.KVBatchOptions) ([]byte, store.KVBatch, error) {
-	return make([]byte, options.TotalBytes), w.NewBatch(), nil
+func (w *writer) NewBatchEx(options store.KVBatchOptions) (store.KVBatch, error) {
+	return w.NewBatch(), nil
 }
 
 func (w *writer) ExecuteBatch(store.KVBatch) error {

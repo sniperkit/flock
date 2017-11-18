@@ -17,7 +17,7 @@ package test
 import (
 	"testing"
 
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index/store"
 )
 
 // basic crud tests
@@ -30,9 +30,9 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 	}
 
 	batch := writer.NewBatch()
-	batch.Set([]byte("a"), []byte("val-a"))
-	batch.Set([]byte("z"), []byte("val-z"))
-	batch.Delete([]byte("z"))
+	batch.Set("a", []byte("key-a"), []byte("val-a"))
+	batch.Set("z", []byte("key-z"), []byte("val-z"))
+	batch.Delete("z", []byte("z"))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)
@@ -40,15 +40,15 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 
 	batch.Reset()
 
-	batch.Set([]byte("b"), []byte("val-b"))
-	batch.Set([]byte("c"), []byte("val-c"))
-	batch.Set([]byte("d"), []byte("val-d"))
-	batch.Set([]byte("e"), []byte("val-e"))
-	batch.Set([]byte("f"), []byte("val-f"))
-	batch.Set([]byte("g"), []byte("val-g"))
-	batch.Set([]byte("h"), []byte("val-h"))
-	batch.Set([]byte("i"), []byte("val-i"))
-	batch.Set([]byte("j"), []byte("val-j"))
+	batch.Set("b", []byte("key-b"), []byte("val-b"))
+	batch.Set("b", []byte("key-c"), []byte("val-c"))
+	batch.Set("b", []byte("key-d"), []byte("val-d"))
+	batch.Set("b", []byte("key-e"), []byte("val-e"))
+	batch.Set("b", []byte("key-f"), []byte("val-f"))
+	batch.Set("b", []byte("key-g"), []byte("val-g"))
+	batch.Set("b", []byte("key-h"), []byte("val-h"))
+	batch.Set("b", []byte("key-i"), []byte("val-i"))
+	batch.Set("b", []byte("key-j"), []byte("val-j"))
 
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -69,13 +69,13 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 			t.Fatal(err)
 		}
 	}()
-	it := reader.RangeIterator([]byte("b"), nil)
+	it := reader.RangeIterator("b", nil, nil)
 	key, val, valid := it.Current()
 	if !valid {
 		t.Fatalf("valid false, expected true")
 	}
-	if string(key) != "b" {
-		t.Fatalf("expected key b, got %s", key)
+	if string(key) != "key-b" {
+		t.Fatalf("expected key-b, got %s", key)
 	}
 	if string(val) != "val-b" {
 		t.Fatalf("expected value val-b, got %s", val)
@@ -86,20 +86,20 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 	if !valid {
 		t.Fatalf("valid false, expected true")
 	}
-	if string(key) != "c" {
+	if string(key) != "key-c" {
 		t.Fatalf("expected key c, got %s", key)
 	}
 	if string(val) != "val-c" {
 		t.Fatalf("expected value val-c, got %s", val)
 	}
 
-	it.Seek([]byte("i"))
+	it.Seek([]byte("key-i"))
 	key, val, valid = it.Current()
 	if !valid {
 		t.Fatalf("valid false, expected true")
 	}
-	if string(key) != "i" {
-		t.Fatalf("expected key i, got %s", key)
+	if string(key) != "key-i" {
+		t.Fatalf("expected key key-i, got %s", key)
 	}
 	if string(val) != "val-i" {
 		t.Fatalf("expected value val-i, got %s", val)

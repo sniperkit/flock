@@ -17,7 +17,7 @@ package bleve
 import (
 	"time"
 
-	"github.com/blevesearch/bleve/search/query"
+	"github.com/wrble/flock/search/query"
 )
 
 // NewBoolFieldQuery creates a new Query for boolean fields
@@ -86,12 +86,6 @@ func NewDocIDQuery(ids []string) *query.DocIDQuery {
 // distance as the fuzziness metric.
 func NewFuzzyQuery(term string) *query.FuzzyQuery {
 	return query.NewFuzzyQuery(term)
-}
-
-// NewMatchAllQuery creates a Query which will
-// match all documents in the index.
-func NewMatchAllQuery() *query.MatchAllQuery {
-	return query.NewMatchAllQuery()
 }
 
 // NewMatchNoneQuery creates a Query which will not

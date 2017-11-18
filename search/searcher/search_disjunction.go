@@ -19,9 +19,9 @@ import (
 	"math"
 	"sort"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/scorer"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/search"
+	"github.com/wrble/flock/search/scorer"
 )
 
 // DisjunctionMaxClauseCount is a compile time setting that applications can

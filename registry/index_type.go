@@ -17,7 +17,7 @@ package registry
 import (
 	"fmt"
 
-	"github.com/blevesearch/bleve/index"
+	"github.com/wrble/flock/index"
 )
 
 func RegisterIndexType(name string, constructor IndexTypeConstructor) {

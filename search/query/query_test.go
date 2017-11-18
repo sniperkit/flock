@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blevesearch/bleve/mapping"
+	"github.com/wrble/flock/mapping"
 )
 
 var minNum = 5.1
@@ -169,10 +169,6 @@ func TestParseQuery(t *testing.T) {
 			}(),
 		},
 		{
-			input:  []byte(`{"match_all":{}}`),
-			output: NewMatchAllQuery(),
-		},
-		{
 			input:  []byte(`{"match_none":{}}`),
 			output: NewMatchNoneQuery(),
 		},
@@ -271,13 +267,6 @@ func TestQueryValidate(t *testing.T) {
 		{
 			query: func() Query {
 				q := NewMatchNoneQuery()
-				q.SetBoost(25)
-				return q
-			}(),
-		},
-		{
-			query: func() Query {
-				q := NewMatchAllQuery()
 				q.SetBoost(25)
 				return q
 			}(),

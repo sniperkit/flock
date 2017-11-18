@@ -17,8 +17,8 @@ package upsidedown
 import (
 	"fmt"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
 )
 
 type UpsideDownCouchFieldDict struct {
@@ -30,8 +30,8 @@ type UpsideDownCouchFieldDict struct {
 }
 
 func newUpsideDownCouchFieldDict(indexReader *IndexReader, field uint16, startTerm, endTerm []byte) (*UpsideDownCouchFieldDict, error) {
-
-	startKey := NewDictionaryRow(startTerm, field, 0).Key()
+	dictRow := NewDictionaryRow(startTerm, field, 0)
+	startKey := dictRow.Key()
 	if endTerm == nil {
 		endTerm = []byte{ByteSeparator}
 	} else {
@@ -39,7 +39,7 @@ func newUpsideDownCouchFieldDict(indexReader *IndexReader, field uint16, startTe
 	}
 	endKey := NewDictionaryRow(endTerm, field, 0).Key()
 
-	it := indexReader.kvreader.RangeIterator(startKey, endKey)
+	it := indexReader.kvreader.RangeIterator(dictRow.Table(), startKey, endKey)
 
 	return &UpsideDownCouchFieldDict{
 		indexReader: indexReader,
@@ -48,7 +48,6 @@ func newUpsideDownCouchFieldDict(indexReader *IndexReader, field uint16, startTe
 		dictEntry:   &index.DictEntry{}, // Pre-alloced, reused entry.
 		field:       field,
 	}, nil
-
 }
 
 func (r *UpsideDownCouchFieldDict) Next() (*index.DictEntry, error) {

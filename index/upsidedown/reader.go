@@ -19,8 +19,8 @@ import (
 	"sort"
 	"sync/atomic"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
 )
 
 type UpsideDownCouchTermFieldReader struct {
@@ -40,10 +40,9 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 	if bufNeeded < dictionaryRowKeySize(term) {
 		bufNeeded = dictionaryRowKeySize(term)
 	}
-	buf := make([]byte, bufNeeded)
 
-	bufUsed := dictionaryRowKeyTo(buf, field, term)
-	val, err := indexReader.kvreader.Get(buf[:bufUsed])
+	dictRow := NewDictionaryRow(term, field, 0)
+	val, err := indexReader.kvreader.Get(dictRow.Table(), dictRow.Key())
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +63,9 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 		return nil, err
 	}
 
-	bufUsed = termFrequencyRowKeyTo(buf, field, term, nil)
-	it := indexReader.kvreader.PrefixIterator(buf[:bufUsed])
+	buf := make([]byte, bufNeeded)
+	bufUsed := termFrequencyRowKeyTo(buf, field, term, nil)
+	it := indexReader.kvreader.PrefixIterator("t", buf[:bufUsed])
 
 	atomic.AddUint64(&indexReader.index.stats.termSearchersStarted, uint64(1))
 	return &UpsideDownCouchTermFieldReader{
@@ -125,11 +125,7 @@ func (r *UpsideDownCouchTermFieldReader) Advance(docID index.IndexInternalID, pr
 			r.tfrNext = &TermFrequencyRow{}
 		}
 		tfr := InitTermFrequencyRow(r.tfrNext, r.term, r.field, docID, 0, 0)
-		r.keyBuf, err = tfr.KeyAppendTo(r.keyBuf[:0])
-		if err != nil {
-			return nil, err
-		}
-		r.iterator.Seek(r.keyBuf)
+		r.iterator.Seek(tfr.Key())
 		key, val, valid := r.iterator.Current()
 		if valid {
 			err := tfr.parseKDoc(key, r.term)
@@ -174,21 +170,6 @@ type UpsideDownCouchDocIDReader struct {
 	onlyMode    bool
 }
 
-func newUpsideDownCouchDocIDReader(indexReader *IndexReader) (*UpsideDownCouchDocIDReader, error) {
-
-	startBytes := []byte{0x0}
-	endBytes := []byte{0xff}
-
-	bisr := NewBackIndexRow(startBytes, nil, nil)
-	bier := NewBackIndexRow(endBytes, nil, nil)
-	it := indexReader.kvreader.RangeIterator(bisr.Key(), bier.Key())
-
-	return &UpsideDownCouchDocIDReader{
-		indexReader: indexReader,
-		iterator:    it,
-	}, nil
-}
-
 func newUpsideDownCouchDocIDReaderOnly(indexReader *IndexReader, ids []string) (*UpsideDownCouchDocIDReader, error) {
 	// we don't actually own the list of ids, so if before we sort we must copy
 	idsCopy := make([]string, len(ids))
@@ -205,7 +186,7 @@ func newUpsideDownCouchDocIDReaderOnly(indexReader *IndexReader, ids []string) (
 	}
 	bisr := NewBackIndexRow(startBytes, nil, nil)
 	bier := NewBackIndexRow(endBytes, nil, nil)
-	it := indexReader.kvreader.RangeIterator(bisr.Key(), bier.Key())
+	it := indexReader.kvreader.RangeIterator(bisr.Table(), bisr.Key(), bier.Key())
 
 	return &UpsideDownCouchDocIDReader{
 		indexReader: indexReader,

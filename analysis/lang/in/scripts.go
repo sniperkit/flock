@@ -17,8 +17,8 @@ package in
 import (
 	"unicode"
 
-	"github.com/blevesearch/bleve/analysis"
 	"github.com/willf/bitset"
+	"github.com/wrble/flock/analysis"
 )
 
 type ScriptData struct {

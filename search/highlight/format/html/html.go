@@ -15,8 +15,8 @@
 package html
 
 import (
-	"github.com/blevesearch/bleve/registry"
-	"github.com/blevesearch/bleve/search/highlight"
+	"github.com/wrble/flock/registry"
+	"github.com/wrble/flock/search/highlight"
 )
 
 const Name = "html"

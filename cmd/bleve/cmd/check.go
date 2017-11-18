@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/blevesearch/bleve"
 	"github.com/spf13/cobra"
+	"github.com/wrble/flock"
 )
 
 var checkFieldName string

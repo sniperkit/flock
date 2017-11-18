@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/blevesearch/bleve/document"
+	"github.com/wrble/flock/document"
 )
 
 type DocGetHandler struct {

@@ -19,10 +19,10 @@ import (
 	"strconv"
 	"testing"
 
-	_ "github.com/blevesearch/bleve/analysis/analyzer/standard"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/registry"
+	_ "github.com/wrble/flock/analysis/analyzer/standard"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/registry"
 )
 
 var benchmarkDocBodies = []string{

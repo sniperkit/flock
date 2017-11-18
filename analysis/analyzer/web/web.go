@@ -15,11 +15,11 @@
 package web
 
 import (
-	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/analysis/lang/en"
-	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/tokenizer/web"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/analysis"
+	"github.com/wrble/flock/analysis/lang/en"
+	"github.com/wrble/flock/analysis/token/lowercase"
+	"github.com/wrble/flock/analysis/tokenizer/web"
+	"github.com/wrble/flock/registry"
 )
 
 const Name = "web"

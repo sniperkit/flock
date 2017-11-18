@@ -30,13 +30,13 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/blevesearch/bleve/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/null"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search"
-	"github.com/blevesearch/bleve/search/query"
+	"github.com/wrble/flock/analysis/analyzer/keyword"
+	"github.com/wrble/flock/document"
+	bleveidx "github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/null"
+	"github.com/wrble/flock/mapping"
+	"github.com/wrble/flock/search"
+	"github.com/wrble/flock/search/query"
 )
 
 func TestCrud(t *testing.T) {
@@ -294,7 +294,7 @@ func TestIndexOpenMetaMissingOrCorrupt(t *testing.T) {
 
 func TestInMemIndex(t *testing.T) {
 
-	index, err := NewMemOnly(NewIndexMapping())
+	index, err := NewTempIndex(NewIndexMapping())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,7 @@ func TestInMemIndex(t *testing.T) {
 }
 
 func TestClosedIndex(t *testing.T) {
-	index, err := NewMemOnly(NewIndexMapping())
+	index, err := NewTempIndex(NewIndexMapping())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ type slowQuery struct {
 	delay  time.Duration
 }
 
-func (s *slowQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
+func (s *slowQuery) Searcher(i bleveidx.IndexReader, m mapping.IndexMapping, options search.SearcherOptions) (search.Searcher, error) {
 	time.Sleep(s.delay)
 	return s.actual.Searcher(i, m, options)
 }
@@ -1682,9 +1682,9 @@ func TestBug408(t *testing.T) {
 	indexMapping := NewIndexMapping()
 	indexMapping.DefaultMapping = docMapping
 
-	index, err := NewMemOnly(indexMapping)
+	index, err := NewTempIndex(indexMapping)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 
 	numToTest := 10

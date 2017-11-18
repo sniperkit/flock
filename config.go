@@ -20,14 +20,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/gtreap"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/registry"
-	"github.com/blevesearch/bleve/search/highlight/highlighter/html"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/upsidedown"
+	"github.com/wrble/flock/registry"
+	"github.com/wrble/flock/search/highlight/highlighter/html"
 )
 
-var bleveExpVar = expvar.NewMap("bleve")
+var bleveExpVar = expvar.NewMap("bleved")
 
 type configuration struct {
 	Cache                  *registry.Cache
@@ -65,8 +65,7 @@ func init() {
 	// default kv store
 	Config.DefaultKVStore = ""
 
-	// default mem only kv store
-	Config.DefaultMemKVStore = gtreap.Name
+	Config.DefaultMemKVStore = goleveldb.Name
 
 	// default index
 	Config.DefaultIndexType = upsidedown.Name

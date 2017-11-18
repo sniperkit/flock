@@ -25,11 +25,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/analysis"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/registry"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -43,7 +43,8 @@ const Name = "upside_down"
 // rows fit this size.
 const RowBufferSize = 4 * 1024
 
-var VersionKey = []byte{'v'}
+var VersionTable = "v"
+var StaticKey = []byte("static")
 
 const Version uint8 = 7
 
@@ -95,8 +96,7 @@ func (udc *UpsideDownCouch) init(kvwriter store.KVWriter) (err error) {
 }
 
 func (udc *UpsideDownCouch) loadSchema(kvreader store.KVReader) (err error) {
-
-	it := kvreader.PrefixIterator([]byte{'f'})
+	it := kvreader.PrefixIterator("f", []byte{})
 	defer func() {
 		if cerr := it.Close(); err == nil && cerr != nil {
 			err = cerr
@@ -116,7 +116,7 @@ func (udc *UpsideDownCouch) loadSchema(kvreader store.KVReader) (err error) {
 		key, val, valid = it.Current()
 	}
 
-	val, err = kvreader.Get([]byte{'v'})
+	val, err = kvreader.Get(VersionTable, StaticKey)
 	if err != nil {
 		return
 	}
@@ -133,61 +133,24 @@ func (udc *UpsideDownCouch) loadSchema(kvreader store.KVReader) (err error) {
 	return
 }
 
-var rowBufferPool sync.Pool
-
-func GetRowBuffer() []byte {
-	if rb, ok := rowBufferPool.Get().([]byte); ok {
-		return rb
-	} else {
-		return make([]byte, RowBufferSize)
-	}
-}
-
-func PutRowBuffer(buf []byte) {
-	rowBufferPool.Put(buf)
-}
-
 func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]UpsideDownCouchRow, updateRowsAll [][]UpsideDownCouchRow, deleteRowsAll [][]UpsideDownCouchRow) (err error) {
-	dictionaryDeltas := make(map[string]int64)
-
-	// count up bytes needed for buffering.
 	addNum := 0
-	addKeyBytes := 0
-	addValBytes := 0
-
 	updateNum := 0
-	updateKeyBytes := 0
-	updateValBytes := 0
-
 	deleteNum := 0
-	deleteKeyBytes := 0
 
-	rowBuf := GetRowBuffer()
+	dictionaryDeltas := make(map[string]int64)
 
 	for _, addRows := range addRowsAll {
 		for _, row := range addRows {
 			tfr, ok := row.(*TermFrequencyRow)
 			if ok {
-				if tfr.DictionaryRowKeySize() > len(rowBuf) {
-					rowBuf = make([]byte, tfr.DictionaryRowKeySize())
-				}
-				dictKeySize, err := tfr.DictionaryRowKeyTo(rowBuf)
-				if err != nil {
-					return err
-				}
-				dictionaryDeltas[string(rowBuf[:dictKeySize])] += 1
+				dictionaryDeltas[string(tfr.DictionaryRowKey())] += 1
 			}
-			addKeyBytes += row.KeySize()
-			addValBytes += row.ValueSize()
 		}
 		addNum += len(addRows)
 	}
 
 	for _, updateRows := range updateRowsAll {
-		for _, row := range updateRows {
-			updateKeyBytes += row.KeySize()
-			updateValBytes += row.ValueSize()
-		}
 		updateNum += len(updateRows)
 	}
 
@@ -196,41 +159,15 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 			tfr, ok := row.(*TermFrequencyRow)
 			if ok {
 				// need to decrement counter
-				if tfr.DictionaryRowKeySize() > len(rowBuf) {
-					rowBuf = make([]byte, tfr.DictionaryRowKeySize())
-				}
-				dictKeySize, err := tfr.DictionaryRowKeyTo(rowBuf)
-				if err != nil {
-					return err
-				}
-				dictionaryDeltas[string(rowBuf[:dictKeySize])] -= 1
+				dictionaryDeltas[string(tfr.DictionaryRowKey())] -= 1
 			}
-			deleteKeyBytes += row.KeySize()
 		}
 		deleteNum += len(deleteRows)
 	}
 
-	PutRowBuffer(rowBuf)
-
-	mergeNum := len(dictionaryDeltas)
-	mergeKeyBytes := 0
-	mergeValBytes := mergeNum * DictionaryRowMaxValueSize
-
-	for dictRowKey := range dictionaryDeltas {
-		mergeKeyBytes += len(dictRowKey)
-	}
-
-	// prepare batch
-	totBytes := addKeyBytes + addValBytes +
-		updateKeyBytes + updateValBytes +
-		deleteKeyBytes +
-		2*(mergeKeyBytes+mergeValBytes)
-
-	buf, wb, err := writer.NewBatchEx(store.KVBatchOptions{
-		TotalBytes: totBytes,
+	wb, err := writer.NewBatchEx(store.KVBatchOptions{
 		NumSets:    addNum + updateNum,
 		NumDeletes: deleteNum,
-		NumMerges:  mergeNum,
 	})
 	if err != nil {
 		return err
@@ -242,49 +179,28 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 	// fill the batch
 	for _, addRows := range addRowsAll {
 		for _, row := range addRows {
-			keySize, err := row.KeyTo(buf)
-			if err != nil {
-				return err
-			}
-			valSize, err := row.ValueTo(buf[keySize:])
-			if err != nil {
-				return err
-			}
-			wb.Set(buf[:keySize], buf[keySize:keySize+valSize])
-			buf = buf[keySize+valSize:]
+			wb.Set(row.Table(), row.Key(), row.Value())
 		}
 	}
 
 	for _, updateRows := range updateRowsAll {
 		for _, row := range updateRows {
-			keySize, err := row.KeyTo(buf)
-			if err != nil {
-				return err
-			}
-			valSize, err := row.ValueTo(buf[keySize:])
-			if err != nil {
-				return err
-			}
-			wb.Set(buf[:keySize], buf[keySize:keySize+valSize])
-			buf = buf[keySize+valSize:]
+			wb.Set(row.Table(), row.Key(), row.Value())
 		}
 	}
 
 	for _, deleteRows := range deleteRowsAll {
 		for _, row := range deleteRows {
-			keySize, err := row.KeyTo(buf)
-			if err != nil {
-				return err
-			}
-			wb.Delete(buf[:keySize])
-			buf = buf[keySize:]
+			wb.Delete(row.Table(), row.Key())
 		}
 	}
 
 	for dictRowKey, delta := range dictionaryDeltas {
+		//fmt.Println("PRE MERGE", dictRowKey)
+		buf := make([]byte, len(dictRowKey)+DictionaryRowMaxValueSize)
 		dictRowKeyLen := copy(buf, dictRowKey)
 		binary.LittleEndian.PutUint64(buf[dictRowKeyLen:], uint64(delta))
-		wb.Merge(buf[:dictRowKeyLen], buf[dictRowKeyLen:dictRowKeyLen+DictionaryRowMaxValueSize])
+		wb.Merge("d", buf[:dictRowKeyLen], buf[dictRowKeyLen:dictRowKeyLen+DictionaryRowMaxValueSize])
 		buf = buf[dictRowKeyLen+DictionaryRowMaxValueSize:]
 	}
 
@@ -318,7 +234,7 @@ func (udc *UpsideDownCouch) Open() (err error) {
 	}
 
 	var value []byte
-	value, err = kvreader.Get(VersionKey)
+	value, err = kvreader.Get(VersionTable, StaticKey)
 	if err != nil {
 		_ = kvreader.Close()
 		return
@@ -363,49 +279,7 @@ func (udc *UpsideDownCouch) Open() (err error) {
 }
 
 func (udc *UpsideDownCouch) countDocs(kvreader store.KVReader) (count uint64, err error) {
-	it := kvreader.PrefixIterator([]byte{'b'})
-	defer func() {
-		if cerr := it.Close(); err == nil && cerr != nil {
-			err = cerr
-		}
-	}()
-
-	_, _, valid := it.Current()
-	for valid {
-		count++
-		it.Next()
-		_, _, valid = it.Current()
-	}
-
-	return
-}
-
-func (udc *UpsideDownCouch) rowCount() (count uint64, err error) {
-	// start an isolated reader for use during the rowcount
-	kvreader, err := udc.store.Reader()
-	if err != nil {
-		return
-	}
-	defer func() {
-		if cerr := kvreader.Close(); err == nil && cerr != nil {
-			err = cerr
-		}
-	}()
-	it := kvreader.RangeIterator(nil, nil)
-	defer func() {
-		if cerr := it.Close(); err == nil && cerr != nil {
-			err = cerr
-		}
-	}()
-
-	_, _, valid := it.Current()
-	for valid {
-		count++
-		it.Next()
-		_, _, valid = it.Current()
-	}
-
-	return
+	return kvreader.DocCount()
 }
 
 func (udc *UpsideDownCouch) Close() error {
@@ -529,31 +403,24 @@ func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, rows []in
 		}
 	}
 
-	keyBuf := GetRowBuffer()
 	for _, row := range rows {
 		switch row := row.(type) {
 		case *TermFrequencyRow:
 			if existingTermKeys != nil {
-				if row.KeySize() > len(keyBuf) {
-					keyBuf = make([]byte, row.KeySize())
-				}
-				keySize, _ := row.KeyTo(keyBuf)
-				if _, ok := existingTermKeys[string(keyBuf[:keySize])]; ok {
+				key := row.Key()
+				if _, ok := existingTermKeys[string(key)]; ok {
 					updateRows = append(updateRows, row)
-					delete(existingTermKeys, string(keyBuf[:keySize]))
+					delete(existingTermKeys, string(key))
 					continue
 				}
 			}
 			addRows = append(addRows, row)
 		case *StoredRow:
 			if existingStoredKeys != nil {
-				if row.KeySize() > len(keyBuf) {
-					keyBuf = make([]byte, row.KeySize())
-				}
-				keySize, _ := row.KeyTo(keyBuf)
-				if _, ok := existingStoredKeys[string(keyBuf[:keySize])]; ok {
+				key := row.Key()
+				if _, ok := existingStoredKeys[string(key)]; ok {
 					updateRows = append(updateRows, row)
-					delete(existingStoredKeys, string(keyBuf[:keySize]))
+					delete(existingStoredKeys, string(key))
 					continue
 				}
 			}
@@ -562,7 +429,6 @@ func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, rows []in
 			updateRows = append(updateRows, row)
 		}
 	}
-	PutRowBuffer(keyBuf)
 
 	// any of the existing rows that weren't updated need to be deleted
 	for existingTermKey := range existingTermKeys {
@@ -978,8 +844,7 @@ func (udc *UpsideDownCouch) SetInternal(key, val []byte) (err error) {
 	}()
 
 	batch := writer.NewBatch()
-	batch.Set(internalRow.Key(), internalRow.Value())
-
+	batch.Set(internalRow.Table(), internalRow.Key(), internalRow.Value())
 	return writer.ExecuteBatch(batch)
 }
 
@@ -999,7 +864,7 @@ func (udc *UpsideDownCouch) DeleteInternal(key []byte) (err error) {
 	}()
 
 	batch := writer.NewBatch()
-	batch.Delete(internalRow.Key())
+	batch.Delete(internalRow.Table(), internalRow.Key())
 	return writer.ExecuteBatch(batch)
 }
 
@@ -1047,24 +912,15 @@ func backIndexRowForDoc(kvreader store.KVReader, docID index.IndexInternalID) (*
 		doc: docID,
 	}
 
-	keyBuf := GetRowBuffer()
-	if tempRow.KeySize() > len(keyBuf) {
-		keyBuf = make([]byte, 2*tempRow.KeySize())
-	}
-	defer PutRowBuffer(keyBuf)
-	keySize, err := tempRow.KeyTo(keyBuf)
-	if err != nil {
-		return nil, err
-	}
-
-	value, err := kvreader.Get(keyBuf[:keySize])
+	key := tempRow.Key()
+	value, err := kvreader.Get(tempRow.Table(), key)
 	if err != nil {
 		return nil, err
 	}
 	if value == nil {
 		return nil, nil
 	}
-	backIndexRow, err := NewBackIndexRowKV(keyBuf[:keySize], value)
+	backIndexRow, err := NewBackIndexRowKV(key, value)
 	if err != nil {
 		return nil, err
 	}

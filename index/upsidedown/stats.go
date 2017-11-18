@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"sync/atomic"
 
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index/store"
 )
 
 type indexStat struct {

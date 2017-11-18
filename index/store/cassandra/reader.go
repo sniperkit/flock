@@ -1,0 +1,82 @@
+package cassandra
+
+import (
+	"fmt"
+
+	"github.com/gocql/gocql"
+	"github.com/wrble/flock/index/store"
+)
+
+type Reader struct {
+	store *Store
+}
+
+func (r *Reader) Get(table string, key []byte) ([]byte, error) {
+	var value []byte
+	if r.store.debug {
+		fmt.Println("GET: "+table, key)
+	}
+	err := r.store.Session.Query(`SELECT value FROM `+r.store.tableName+` WHERE type = ? AND key = ?`, table, key).Scan(&value)
+	if err != nil {
+		if err.Error() == "not found" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if r.store.debug {
+		fmt.Println("GET RESPONSE: " + string(value))
+	}
+	return value, err
+}
+
+func (r *Reader) DocCount() (uint64, error) {
+	c := uint64(0)
+	err := r.store.Session.Query(`SELECT count(*) FROM `+r.store.tableName+` WHERE type = ?`, "b").Scan(&c)
+	return c, err
+}
+
+func (r *Reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {
+	if r.store.debug {
+		fmt.Println("multiget", len(keys))
+	}
+	return store.MultiGet(r, table, keys)
+}
+
+func (r *Reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
+	var iter *gocql.Iter
+	if r.store.debug {
+		fmt.Println("PrefixIterator", r.store.tableName, table, string(prefix))
+	}
+	iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
+	rv := &Iterator{
+		store:    r.store,
+		iterator: iter,
+		startKey: prefix,
+	}
+	rv.Next()
+	return rv
+}
+
+func (r *Reader) RangeIterator(table string, start, end []byte) store.KVIterator {
+	if r.store.debug {
+		fmt.Println("RangeIterator", table, string(start), string(end))
+	}
+	var iter *gocql.Iter
+	if len(start) == 0 && len(end) == 0 {
+		iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ?`, table).Iter()
+	} else if end != nil && len(end) > 0 {
+		iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ? AND key >= ? AND key < ?`, table, start, end).Iter()
+	} else {
+		iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ? AND key >= ?`, table, start).Iter()
+	}
+	rv := Iterator{
+		store:    r.store,
+		iterator: iter,
+	}
+	rv.Next()
+	return &rv
+}
+
+func (r *Reader) Close() error {
+	return nil
+}

@@ -17,7 +17,7 @@ package registry
 import (
 	"fmt"
 
-	"github.com/blevesearch/bleve/search/highlight"
+	"github.com/wrble/flock/search/highlight"
 )
 
 func RegisterHighlighter(name string, constructor HighlighterConstructor) {

@@ -14,19 +14,35 @@
 
 package goleveldb
 
-import "github.com/syndtr/goleveldb/leveldb/iterator"
+import (
+	"fmt"
+
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/wrble/flock/index/store"
+)
 
 type Iterator struct {
 	store    *Store
 	iterator iterator.Iterator
+	table    string
 }
 
 func (ldi *Iterator) Seek(key []byte) {
-	ldi.iterator.Seek(key)
+	if ldi.store.debug {
+		fmt.Println("SEEK", string(key))
+	}
+	combined := store.Combine(ldi.table, key)
+	valid := ldi.iterator.Seek(combined)
+	if !valid && ldi.store.debug {
+		fmt.Println("SEEK INVALID", string(combined))
+	}
 }
 
 func (ldi *Iterator) Next() {
 	ldi.iterator.Next()
+	if ldi.Valid() && ldi.store.debug {
+		fmt.Println("ITER", string(ldi.Key()))
+	}
 }
 
 func (ldi *Iterator) Current() ([]byte, []byte, bool) {
@@ -37,7 +53,10 @@ func (ldi *Iterator) Current() ([]byte, []byte, bool) {
 }
 
 func (ldi *Iterator) Key() []byte {
-	return ldi.iterator.Key()
+	//if ldi.store.debug {
+	//	fmt.Println("ITER KEY", string(ldi.iterator.Key()))
+	//}
+	return ldi.iterator.Key()[1:]
 }
 
 func (ldi *Iterator) Value() []byte {

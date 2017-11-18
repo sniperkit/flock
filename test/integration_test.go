@@ -25,11 +25,13 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/mapping"
+	"github.com/wrble/flock"
+	"github.com/wrble/flock/mapping"
 
 	// allow choosing alternate kvstores
-	_ "github.com/blevesearch/bleve/config"
+	"fmt"
+
+	_ "github.com/wrble/flock/config"
 )
 
 var dataset = flag.String("dataset", "", "only test datasets matching this regex")
@@ -88,6 +90,11 @@ func runTestDir(t *testing.T, dir, datasetName string) {
 	}
 
 	// open new index
+	err = os.RemoveAll("test.bleve")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if !*keepIndex {
 		defer func() {
 			err := os.RemoveAll("test.bleve")
@@ -146,6 +153,7 @@ func runTestDir(t *testing.T, dir, datasetName string) {
 	var searches SearchTests
 	err = json.Unmarshal(searchBytes, &searches)
 	if err != nil {
+		fmt.Println(dir)
 		t.Errorf("error unmarshalling searches: %v", err)
 		return
 	}

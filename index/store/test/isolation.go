@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/blevesearch/bleve/index/store"
+	"github.com/wrble/flock/index/store"
 )
 
 // tests focused on verifying that readers are isolated from writers
@@ -50,10 +50,11 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	// the subsequent writes do not require additional
 	// space
 	hackSize := 1000
+	table := "b"
 	batch := writer.NewBatch()
 	for i := 0; i < hackSize; i++ {
 		k := fmt.Sprintf("x%d", i)
-		batch.Set([]byte(k), []byte("filler"))
+		batch.Set(table, []byte(k), []byte("filler"))
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -62,7 +63,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	// **************************************************
 
 	batch = writer.NewBatch()
-	batch.Set([]byte("a"), []byte("val-a"))
+	batch.Set(table, []byte("a"), []byte("val-a"))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)
@@ -85,17 +86,17 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	}()
 
 	// verify that we see the value already inserted
-	val, err := reader.Get([]byte("a"))
+	val, err := reader.Get(table, []byte("a"))
 	if err != nil {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(val, []byte("val-a")) {
 		t.Errorf("expected val-a, got nil")
 	}
-
+	//
 	// verify that an iterator sees it
 	count := 0
-	it := reader.RangeIterator([]byte{0}, []byte{'x'})
+	it := reader.RangeIterator("b", []byte{0}, []byte{'x'})
 	defer func() {
 		err := it.Close()
 		if err != nil {
@@ -116,7 +117,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 		t.Error(err)
 	}
 	batch = writer.NewBatch()
-	batch.Set([]byte("b"), []byte("val-b"))
+	batch.Set("b", []byte("key-b"), []byte("val-b"))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +138,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 			t.Fatal(err)
 		}
 	}()
-	val, err = newReader.Get([]byte("b"))
+	val, err = newReader.Get("b", []byte("key-b"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,7 +148,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 
 	// ensure that the direct iterator sees it
 	count = 0
-	it2 := newReader.RangeIterator([]byte{0}, []byte{'x'})
+	it2 := newReader.RangeIterator("b", []byte{0}, []byte{'x'})
 	defer func() {
 		err := it2.Close()
 		if err != nil {
@@ -163,7 +164,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	}
 
 	// but that the isolated reader does not
-	val, err = reader.Get([]byte("b"))
+	val, err = reader.Get("b", nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +174,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 
 	// and ensure that the iterator on the isolated reader also does not
 	count = 0
-	it3 := reader.RangeIterator([]byte{0}, []byte{'x'})
+	it3 := reader.RangeIterator("b", []byte{0}, []byte{'x'})
 	defer func() {
 		err := it3.Close()
 		if err != nil {

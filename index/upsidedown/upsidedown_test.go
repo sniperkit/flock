@@ -23,18 +23,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blevesearch/bleve/analysis"
-	"github.com/blevesearch/bleve/analysis/analyzer/standard"
-	regexpTokenizer "github.com/blevesearch/bleve/analysis/tokenizer/regexp"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index"
-	"github.com/blevesearch/bleve/index/store/boltdb"
-	"github.com/blevesearch/bleve/index/store/null"
-	"github.com/blevesearch/bleve/registry"
+	"github.com/wrble/flock/analysis"
+	"github.com/wrble/flock/analysis/analyzer/standard"
+	regexpTokenizer "github.com/wrble/flock/analysis/tokenizer/regexp"
+	"github.com/wrble/flock/document"
+	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/null"
+	"github.com/wrble/flock/registry"
 )
 
 var testAnalyzer = &analysis.Analyzer{
 	Tokenizer: regexpTokenizer.NewRegexpTokenizer(regexp.MustCompile(`\w+`)),
+}
+
+var testConfig = map[string]interface{}{
+	"path": "test",
 }
 
 func TestIndexOpenReopen(t *testing.T) {
@@ -46,7 +50,7 @@ func TestIndexOpenReopen(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,23 +76,13 @@ func TestIndexOpenReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// opening the database should have inserted a version
-	expectedLength := uint64(1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
-
 	// now close it
 	err = idx.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	idx, err = NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err = NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +107,7 @@ func TestIndexInsert(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,16 +162,6 @@ func TestIndexInsert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// should have 4 rows (1 for version, 1 for schema field, and 1 for single term, and 1 for the term count, and 1 for the back index entry)
-	expectedLength := uint64(1 + 1 + 1 + 1 + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
 }
 
 func TestIndexInsertThenDelete(t *testing.T) {
@@ -189,7 +173,7 @@ func TestIndexInsertThenDelete(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,16 +280,6 @@ func TestIndexInsertThenDelete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// should have 2 rows (1 for version, 1 for schema field, 1 for dictionary row garbage)
-	expectedLength := uint64(1 + 1 + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
 }
 
 func TestIndexInsertThenUpdate(t *testing.T) {
@@ -317,7 +291,7 @@ func TestIndexInsertThenUpdate(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,32 +321,12 @@ func TestIndexInsertThenUpdate(t *testing.T) {
 		t.Errorf("Error deleting entry from index: %v", err)
 	}
 
-	// should have 2 rows (1 for version, 1 for schema field, and 2 for the two term, and 2 for the term counts, and 1 for the back index entry)
-	expectedLength := uint64(1 + 1 + 2 + 2 + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
-
 	// now do another update that should remove one of the terms
 	doc = document.NewDocument("1")
 	doc.AddField(document.NewTextField("name", []uint64{}, []byte("fail")))
 	err = idx.Update(doc)
 	if err != nil {
 		t.Errorf("Error deleting entry from index: %v", err)
-	}
-
-	// should have 2 rows (1 for version, 1 for schema field, and 1 for the remaining term, and 2 for the term diciontary, and 1 for the back index entry)
-	expectedLength = uint64(1 + 1 + 1 + 2 + 1)
-	rowCount, err = idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
 	}
 }
 
@@ -385,7 +339,7 @@ func TestIndexInsertMultiple(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,23 +366,13 @@ func TestIndexInsertMultiple(t *testing.T) {
 	}
 	expectedCount++
 
-	// should have 4 rows (1 for version, 1 for schema field, and 2 for single term, and 1 for the term count, and 2 for the back index entries)
-	expectedLength := uint64(1 + 1 + 2 + 1 + 2)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
-
 	// close, reopen and add one more to test that counting works correctly
 	err = idx.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	idx, err = NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err = NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,7 +421,7 @@ func TestIndexInsertWithStore(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -533,16 +477,6 @@ func TestIndexInsertWithStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// should have 6 rows (1 for version, 1 for schema field, and 1 for single term, and 1 for the stored field and 1 for the term count, and 1 for the back index entry)
-	expectedLength := uint64(1 + 1 + 1 + 1 + 1 + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
-
 	indexReader, err := idx.Reader()
 	if err != nil {
 		t.Error(err)
@@ -580,7 +514,7 @@ func TestIndexInternalCRUD(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +608,7 @@ func TestIndexBatch(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -746,24 +680,6 @@ func TestIndexBatch(t *testing.T) {
 	if docCount != expectedCount {
 		t.Errorf("Expected document count to be %d got %d", expectedCount, docCount)
 	}
-
-	docIDReader, err := indexReader.DocIDReaderAll()
-	if err != nil {
-		t.Error(err)
-	}
-	var docIds []index.IndexInternalID
-	docID, err := docIDReader.Next()
-	for docID != nil && err == nil {
-		docIds = append(docIds, docID)
-		docID, err = docIDReader.Next()
-	}
-	if err != nil {
-		t.Error(err)
-	}
-	expectedDocIds := []index.IndexInternalID{index.IndexInternalID("2"), index.IndexInternalID("3")}
-	if !reflect.DeepEqual(docIds, expectedDocIds) {
-		t.Errorf("expected ids: %v, got ids: %v", expectedDocIds, docIds)
-	}
 }
 
 func TestIndexInsertUpdateDeleteWithMultipleTypesStored(t *testing.T) {
@@ -775,7 +691,7 @@ func TestIndexInsertUpdateDeleteWithMultipleTypesStored(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -835,26 +751,6 @@ func TestIndexInsertUpdateDeleteWithMultipleTypesStored(t *testing.T) {
 	err = reader.Close()
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// should have 72 rows
-	// 1 for version
-	// 3 for schema fields
-	// 1 for text term
-	// 16 for numeric terms
-	// 16 for date terms
-	// 3 for the stored field
-	// 1 for the text term count
-	// 16 for numeric term counts
-	// 16 for date term counts
-	// 1 for the back index entry
-	expectedLength := uint64(1 + 3 + 1 + (64 / document.DefaultPrecisionStep) + (64 / document.DefaultPrecisionStep) + 3 + 1 + (64 / document.DefaultPrecisionStep) + (64 / document.DefaultPrecisionStep) + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
 	}
 
 	indexReader, err := idx.Reader()
@@ -995,7 +891,7 @@ func TestIndexInsertFields(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1055,7 +951,7 @@ func TestIndexUpdateComposites(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1077,22 +973,6 @@ func TestIndexUpdateComposites(t *testing.T) {
 	err = idx.Update(doc)
 	if err != nil {
 		t.Errorf("Error updating index: %v", err)
-	}
-
-	// should have 72 rows
-	// 1 for version
-	// 3 for schema fields
-	// 4 for text term
-	// 2 for the stored field
-	// 4 for the text term count
-	// 1 for the back index entry
-	expectedLength := uint64(1 + 3 + 4 + 2 + 4 + 1)
-	rowCount, err := idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
 	}
 
 	// now lets update it
@@ -1131,16 +1011,6 @@ func TestIndexUpdateComposites(t *testing.T) {
 	if string(textField.Value()) != "testupdated" {
 		t.Errorf("expected field content 'test', got '%s'", string(textField.Value()))
 	}
-
-	// should have the same row count as before, plus 4 term dictionary garbage rows
-	expectedLength += 4
-	rowCount, err = idx.(*UpsideDownCouch).rowCount()
-	if err != nil {
-		t.Error(err)
-	}
-	if rowCount != expectedLength {
-		t.Errorf("expected %d rows, got: %d", expectedLength, rowCount)
-	}
 }
 
 func TestIndexFieldsMisc(t *testing.T) {
@@ -1152,7 +1022,7 @@ func TestIndexFieldsMisc(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1199,7 +1069,7 @@ func TestIndexTermReaderCompositeFields(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1260,7 +1130,7 @@ func TestIndexDocumentVisitFieldTerms(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1356,7 +1226,7 @@ func TestConcurrentUpdate(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1412,7 +1282,7 @@ func TestLargeField(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(boltdb.Name, boltTestConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
