@@ -67,7 +67,11 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 }
 
 func CreateTables(session *gocql.Session, tableName string) error {
-	return session.Query(`CREATE TABLE ` + tableName + ` (type text, key blob, value blob, PRIMARY KEY(type, key, value))`).Exec()
+	err := session.Query(`CREATE TABLE d (type text, key blob, value counter, PRIMARY KEY(type, key))`).Exec()
+	if err != nil {
+		return err
+	}
+	return session.Query(`CREATE TABLE ` + tableName + ` (type text, key blob, value blob, PRIMARY KEY(type, key))`).Exec()
 
 	//for _, tableName := range Tables {
 	//	err := session.Query(`CREATE TABLE ` + tableName + ` (key blob, value blob, PRIMARY KEY(key, value))`).Exec()
@@ -79,7 +83,11 @@ func CreateTables(session *gocql.Session, tableName string) error {
 }
 
 func DropTables(session *gocql.Session, tableName string) error {
-	err := session.Query(`DROP TABLE ` + tableName).Exec()
+	err := session.Query(`DROP TABLE d`).Exec()
+	if err != nil && strings.Contains(err.Error(), "unconfigured table") {
+		return nil
+	}
+	err = session.Query(`DROP TABLE ` + tableName).Exec()
 	if err != nil && strings.Contains(err.Error(), "unconfigured table") {
 		return nil
 	}

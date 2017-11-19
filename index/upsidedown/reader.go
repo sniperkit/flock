@@ -42,11 +42,11 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 	}
 
 	dictRow := NewDictionaryRow(term, field, 0)
-	val, err := indexReader.kvreader.Get(dictRow.Table(), dictRow.Key())
+	val, err := indexReader.kvreader.GetCounter(dictRow.Table(), dictRow.Key())
 	if err != nil {
 		return nil, err
 	}
-	if val == nil {
+	if val == -1 {
 		atomic.AddUint64(&indexReader.index.stats.termSearchersStarted, uint64(1))
 		rv := &UpsideDownCouchTermFieldReader{
 			count:              0,
@@ -58,11 +58,6 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 		return rv, nil
 	}
 
-	count, err := dictionaryRowParseV(val)
-	if err != nil {
-		return nil, err
-	}
-
 	buf := make([]byte, bufNeeded)
 	bufUsed := termFrequencyRowKeyTo(buf, field, term, nil)
 	it := indexReader.kvreader.PrefixIterator("t", buf[:bufUsed])
@@ -71,7 +66,7 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 	return &UpsideDownCouchTermFieldReader{
 		indexReader:        indexReader,
 		iterator:           it,
-		count:              count,
+		count:              uint64(val),
 		term:               term,
 		field:              field,
 		includeTermVectors: includeTermVectors,

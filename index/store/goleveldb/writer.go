@@ -45,22 +45,22 @@ func (w *Writer) ExecuteBatch(b store.KVBatch) error {
 	}
 
 	// first process merges
-	for k, mergeOps := range batch.merge.Merges {
-		kb := []byte(k)
-		existingVal, err := w.store.db.Get(kb, w.store.defaultReadOptions)
-		if err != nil && err != leveldb.ErrNotFound {
-			return err
-		}
-		mergedVal, fullMergeOk := w.store.mo.FullMerge(kb, existingVal, mergeOps)
-		if !fullMergeOk {
-			return fmt.Errorf("merge operator returned failure")
-		}
-		// add the final merge to this batch
-		if w.store.debug {
-			fmt.Println("PUT MERGE", string(kb), "|", string(mergedVal))
-		}
-		batch.batch.Put(kb, mergedVal)
-	}
+	//for k, mergeOps := range batch.merge.Merges {
+	//	kb := []byte(k)
+	//	existingVal, err := w.store.db.Get(kb, w.store.defaultReadOptions)
+	//	if err != nil && err != leveldb.ErrNotFound {
+	//		return err
+	//	}
+	//	mergedVal, fullMergeOk := w.store.mo.FullMerge(kb, existingVal, mergeOps)
+	//	if !fullMergeOk {
+	//		return fmt.Errorf("merge operator returned failure")
+	//	}
+	//	// add the final merge to this batch
+	//	if w.store.debug {
+	//		fmt.Println("PUT MERGE", string(kb), "|", string(mergedVal))
+	//	}
+	//	batch.batch.Put(kb, mergedVal)
+	//}
 
 	// now execute the batch
 	return w.store.db.Write(batch.batch, w.store.defaultWriteOptions)

@@ -19,15 +19,10 @@ import (
 	"testing"
 
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 // test merge behavior
-
-func encodeUint64(in uint64) []byte {
-	rv := make([]byte, 8)
-	binary.LittleEndian.PutUint64(rv, in)
-	return rv
-}
 
 func CommonTestMerge(t *testing.T, s store.KVStore) {
 
@@ -35,13 +30,13 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 
 	data := []struct {
 		key []byte
-		val []byte
+		val int64
 	}{
-		{testKey, encodeUint64(1)},
-		{testKey, encodeUint64(1)},
+		{testKey, 1},
+		{testKey, 1},
 	}
 
-	table := "b"
+	table := upsidedown.DictionaryTable
 
 	// open a writer
 	writer, err := s.Writer()
@@ -52,7 +47,7 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 	// write the data
 	batch := writer.NewBatch()
 	for _, row := range data {
-		batch.Merge(table, row.key, row.val)
+		batch.Increment(table, row.key, row.val)
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -72,15 +67,14 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 	}
 
 	// read key
-	returnedVal, err := reader.Get(table, testKey)
+	returnedVal, err := reader.GetCounter(table, testKey)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// check the value
-	mergedval := binary.LittleEndian.Uint64(returnedVal)
-	if mergedval != 2 {
-		t.Errorf("expected 2, got %d", mergedval)
+	if returnedVal != 2 {
+		t.Errorf("expected 2, got %d", returnedVal)
 	}
 
 	// close the reader

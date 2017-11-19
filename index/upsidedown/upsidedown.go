@@ -17,7 +17,6 @@
 package upsidedown
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -196,12 +195,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 	}
 
 	for dictRowKey, delta := range dictionaryDeltas {
-		//fmt.Println("PRE MERGE", dictRowKey)
-		buf := make([]byte, len(dictRowKey)+DictionaryRowMaxValueSize)
-		dictRowKeyLen := copy(buf, dictRowKey)
-		binary.LittleEndian.PutUint64(buf[dictRowKeyLen:], uint64(delta))
-		wb.Merge("d", buf[:dictRowKeyLen], buf[dictRowKeyLen:dictRowKeyLen+DictionaryRowMaxValueSize])
-		buf = buf[dictRowKeyLen+DictionaryRowMaxValueSize:]
+		wb.Increment(DictionaryTable, []byte(dictRowKey), delta)
 	}
 
 	// write out the batch

@@ -25,6 +25,7 @@ import (
 )
 
 const ByteSeparator byte = 0xff
+const DictionaryTable = "d"
 
 type UpsideDownCouchRowStream chan UpsideDownCouchRow
 
@@ -201,7 +202,7 @@ type DictionaryRow struct {
 }
 
 func (v *DictionaryRow) Table() string {
-	return "d"
+	return DictionaryTable
 }
 
 func (dr *DictionaryRow) Key() []byte {
@@ -240,20 +241,6 @@ func NewDictionaryRow(term []byte, field uint16, count uint64) *DictionaryRow {
 		field: field,
 		count: count,
 	}
-}
-
-func NewDictionaryRowKV(key, value []byte) (*DictionaryRow, error) {
-	rv, err := NewDictionaryRowK(key)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rv.parseDictionaryV(value)
-	if err != nil {
-		return nil, err
-	}
-	return rv, nil
-
 }
 
 func NewDictionaryRowK(key []byte) (*DictionaryRow, error) {

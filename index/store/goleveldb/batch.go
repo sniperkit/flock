@@ -17,6 +17,8 @@ package goleveldb
 import (
 	"fmt"
 
+	"encoding/binary"
+
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/wrble/flock/index/store"
 )
@@ -42,6 +44,10 @@ func (b *Batch) Merge(table string, key, val []byte) {
 	b.merge.Merge(table, key, val)
 }
 
+func (b *Batch) Increment(table string, key []byte, amount int64) {
+	b.merge.Merge(table, key, encodeUint64(uint64(amount)))
+}
+
 func (b *Batch) Reset() {
 	b.batch.Reset()
 	b.merge = store.NewEmulatedMerge(b.store.mo)
@@ -52,4 +58,10 @@ func (b *Batch) Close() error {
 	b.batch = nil
 	b.merge = nil
 	return nil
+}
+
+func encodeUint64(in uint64) []byte {
+	rv := make([]byte, 8)
+	binary.LittleEndian.PutUint64(rv, in)
+	return rv
 }

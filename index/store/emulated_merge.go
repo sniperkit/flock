@@ -34,32 +34,22 @@ type MergeOperator interface {
 }
 
 type EmulatedMerge struct {
-	Merges map[string][][]byte
+	Merges map[string]int
 	mo     MergeOperator
 }
 
 func NewEmulatedMerge(mo MergeOperator) *EmulatedMerge {
 	return &EmulatedMerge{
-		Merges: make(map[string][][]byte),
+		Merges: make(map[string]int),
 		mo:     mo,
 	}
 }
 
 func (m *EmulatedMerge) Merge(table string, key, val []byte) {
 	comb := Combine(table, key)
-	ops, ok := m.Merges[string(comb)]
-	if ok && len(ops) > 0 {
-		last := ops[len(ops)-1]
-		mergedVal, partialMergeOk := m.mo.PartialMerge(comb, last, val)
-		if partialMergeOk {
-			// replace last entry with the result of the merge
-			ops[len(ops)-1] = mergedVal
-		} else {
-			// could not partial merge, append this to the end
-			ops = append(ops, val)
-		}
-	} else {
-		ops = [][]byte{val}
+	_, ok := m.Merges[string(comb)]
+	if !ok {
+		m.Merges[string(comb)] = 0
 	}
-	m.Merges[string(comb)] = ops
+	m.Merges[string(comb)] += 1
 }

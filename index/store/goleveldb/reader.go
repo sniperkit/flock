@@ -17,6 +17,8 @@ package goleveldb
 import (
 	"fmt"
 
+	"encoding/binary"
+
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"github.com/wrble/flock/index/store"
@@ -36,6 +38,17 @@ func (r *Reader) Get(table string, key []byte) ([]byte, error) {
 		return nil, nil
 	}
 	return b, err
+}
+
+func (r *Reader) GetCounter(table string, key []byte) (int64, error) {
+	if r.store.debug {
+		fmt.Println("GET", table, string(key))
+	}
+	b, err := r.snapshot.Get(store.Combine(table, key), r.store.defaultReadOptions)
+	if err == leveldb.ErrNotFound {
+		return 0, nil
+	}
+	return int64(binary.LittleEndian.Uint64(b)), err
 }
 
 func (r *Reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {

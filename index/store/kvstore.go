@@ -49,6 +49,10 @@ type KVReader interface {
 	// The caller owns the bytes returned.
 	Get(table string, key []byte) ([]byte, error)
 
+	// Get returns the counter associated with the key
+	// If the key does not exist, -1 is returned.
+	GetCounter(table string, key []byte) (int64, error)
+
 	// MultiGet retrieves multiple values in one call.
 	MultiGet(table string, keys [][]byte) ([][]byte, error)
 
@@ -150,10 +154,14 @@ type KVBatch interface {
 	// the key []byte may be reused as soon as this call returns
 	Delete(table string, key []byte)
 
+	// Incremenets the specified key by an amount
+	// the key []byte may be reused as soon as this call returns
+	Increment(table string, key []byte, amount int64)
+
 	// Merge merges old value with the new value at the specified key
 	// as prescribed by the KVStores merge operator
 	// both key and value []byte may be reused as soon as this call returns
-	Merge(table string, key, val []byte)
+	//Merge(table string, key, val []byte)
 
 	// Reset frees resources for this batch and allows reuse
 	Reset()
