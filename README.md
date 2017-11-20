@@ -8,10 +8,12 @@ Currently it's specific to Wrble's implementation and Cassandra is the only supp
 - Document boosting
 - Atomic boost/field updates
 - Better Cassandra sharding
-- Custom tables (t - custom columns, d - counters, b - sharding)
+- Custom tables (t - custom columns, b - sharding)
+- Makefile
 
 ## DONE:
 
+- Custom 'd' table using counters
 - Re-introduce range iterators
 - Fix broken phrase search
 - Basic indexing and search functional
