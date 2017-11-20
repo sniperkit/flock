@@ -89,6 +89,47 @@ func (s *TermQueryScorer) SetQueryNorm(qnorm float64) {
 }
 
 func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
+	return s.BM25(ctx, termMatch)
+}
+
+func (s *TermQueryScorer) BM25(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
+	var scoreExplanation *search.Explanation
+
+	// Constants
+	k := 1.2 // or 2.0
+	b := .75
+
+	// calculated
+	idf := s.idf
+	tf := ((k + 1.0) * float64(termMatch.Freq)) / (k + float64(termMatch.Freq))
+
+	dl := 1024.0 // TODO: this doc length
+	adl := 512.0 // TODO: avg doc length
+
+	score := idf * ((tf * (k + 1.0)) / (tf + k*(1.0-b+b*(dl/adl))))
+
+	if s.options.Explain {
+		childrenExplanations := make([]*search.Explanation, 3)
+		childrenExplanations[0] = &search.Explanation{
+			Value:   tf,
+			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+		}
+		childrenExplanations[1] = &search.Explanation{
+			Value:   termMatch.Norm,
+			Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
+		}
+		childrenExplanations[2] = s.idfExplanation
+		scoreExplanation = &search.Explanation{
+			Value:    score,
+			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, string(s.queryTerm), termMatch.ID),
+			Children: childrenExplanations,
+		}
+	}
+
+	return processMatch(s, tf, termMatch, scoreExplanation, score, ctx)
+}
+
+func (s *TermQueryScorer) TFIDF(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
 	var scoreExplanation *search.Explanation
 
 	// need to compute score
@@ -118,6 +159,11 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 		}
 	}
 
+	return processMatch(s, tf, termMatch, scoreExplanation, score, ctx)
+}
+
+func processMatch(s *TermQueryScorer, tf float64, termMatch *index.TermFieldDoc, scoreExplanation *search.Explanation, score float64, ctx *search.SearchContext) *search.DocumentMatch {
+
 	// if the query weight isn't 1, multiply
 	if s.queryWeight != 1.0 {
 		score = score * s.queryWeight
@@ -132,14 +178,12 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 			}
 		}
 	}
-
 	rv := ctx.DocumentMatchPool.Get()
 	rv.IndexInternalID = append(rv.IndexInternalID, termMatch.ID...)
 	rv.Score = score
 	if s.options.Explain {
 		rv.Expl = scoreExplanation
 	}
-
 	if termMatch.Vectors != nil && len(termMatch.Vectors) > 0 {
 		locs := make([]search.Location, len(termMatch.Vectors))
 		locsUsed := 0
@@ -177,6 +221,5 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 			tlm[string(s.queryTerm)] = append(tlm[string(s.queryTerm)], loc)
 		}
 	}
-
 	return rv
 }

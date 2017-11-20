@@ -4,6 +4,7 @@ Currently it's specific to Wrble's implementation and Cassandra is the only supp
 
 ## TODO:
 
+- Term Frequency Row, add score to key so we can order by them and stop searches early
 - BM25
 - Document boosting
 - Atomic boost/field updates
