@@ -5,7 +5,8 @@ Currently it's specific to Wrble's implementation and Cassandra is the only supp
 ## TODO:
 
 - Term Frequency Row, add score to key so we can order by them and stop searches early
-- BM25
+- Doc length
+- Average doc length
 - Document boosting
 - Atomic boost/field updates
 - Better Cassandra sharding
@@ -14,6 +15,7 @@ Currently it's specific to Wrble's implementation and Cassandra is the only supp
 
 ## DONE:
 
+- BM25
 - Custom 'd' table using counters
 - Re-introduce range iterators
 - Fix broken phrase search

@@ -109,16 +109,29 @@ func (s *TermQueryScorer) BM25(ctx *search.SearchContext, termMatch *index.TermF
 	score := idf * ((tf * (k + 1.0)) / (tf + k*(1.0-b+b*(dl/adl))))
 
 	if s.options.Explain {
-		childrenExplanations := make([]*search.Explanation, 3)
-		childrenExplanations[0] = &search.Explanation{
-			Value:   tf,
-			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+		childrenExplanations := []*search.Explanation{
+			{
+				Value:   tf,
+				Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+			},
+			{
+				Value:   termMatch.Norm,
+				Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
+			},
+			{
+				Value:   idf,
+				Message: fmt.Sprintf("idf(inverseDocFreq=%d)", s.idf),
+			},
+			{
+				Value:   dl,
+				Message: fmt.Sprintf("dl(docLength=%d)", dl),
+			},
+			{
+				Value:   adl,
+				Message: fmt.Sprintf("adl(averageDocLength=%d)", adl),
+			},
+			s.idfExplanation,
 		}
-		childrenExplanations[1] = &search.Explanation{
-			Value:   termMatch.Norm,
-			Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
-		}
-		childrenExplanations[2] = s.idfExplanation
 		scoreExplanation = &search.Explanation{
 			Value:    score,
 			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, string(s.queryTerm), termMatch.ID),
@@ -142,16 +155,17 @@ func (s *TermQueryScorer) TFIDF(ctx *search.SearchContext, termMatch *index.Term
 	score := tf * termMatch.Norm * s.idf
 
 	if s.options.Explain {
-		childrenExplanations := make([]*search.Explanation, 3)
-		childrenExplanations[0] = &search.Explanation{
-			Value:   tf,
-			Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+		childrenExplanations := []*search.Explanation{
+			{
+				Value:   tf,
+				Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
+			},
+			{
+				Value:   termMatch.Norm,
+				Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
+			},
+			s.idfExplanation,
 		}
-		childrenExplanations[1] = &search.Explanation{
-			Value:   termMatch.Norm,
-			Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
-		}
-		childrenExplanations[2] = s.idfExplanation
 		scoreExplanation = &search.Explanation{
 			Value:    score,
 			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, string(s.queryTerm), termMatch.ID),
