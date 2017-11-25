@@ -106,6 +106,7 @@ func (s *TermQueryScorer) BM25(ctx *search.SearchContext, termMatch *index.TermF
 	dl := 1024.0 // TODO: this doc length
 	adl := 512.0 // TODO: avg doc length
 
+	// From https://en.wikipedia.org/wiki/Okapi_BM25
 	score := idf * ((tf * (k + 1.0)) / (tf + k*(1.0-b+b*(dl/adl))))
 
 	if s.options.Explain {
