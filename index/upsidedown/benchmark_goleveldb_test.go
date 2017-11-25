@@ -17,7 +17,7 @@ package upsidedown
 import (
 	"testing"
 
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 )
 
 var goLevelDBTestOptions = map[string]interface{}{
@@ -26,51 +26,51 @@ var goLevelDBTestOptions = map[string]interface{}{
 }
 
 func BenchmarkGoLevelDBIndexing1Workers(b *testing.B) {
-	CommonBenchmarkIndex(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 1)
+	CommonBenchmarkIndex(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 1)
 }
 
 func BenchmarkGoLevelDBIndexing2Workers(b *testing.B) {
-	CommonBenchmarkIndex(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 2)
+	CommonBenchmarkIndex(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 2)
 }
 
 func BenchmarkGoLevelDBIndexing4Workers(b *testing.B) {
-	CommonBenchmarkIndex(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 4)
+	CommonBenchmarkIndex(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 4)
 }
 
 // batches
 
 func BenchmarkGoLevelDBIndexing1Workers10Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 1, 10)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 1, 10)
 }
 
 func BenchmarkGoLevelDBIndexing2Workers10Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 2, 10)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 2, 10)
 }
 
 func BenchmarkGoLevelDBIndexing4Workers10Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 4, 10)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 4, 10)
 }
 
 func BenchmarkGoLevelDBIndexing1Workers100Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 1, 100)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 1, 100)
 }
 
 func BenchmarkGoLevelDBIndexing2Workers100Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 2, 100)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 2, 100)
 }
 
 func BenchmarkGoLevelDBIndexing4Workers100Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 4, 100)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 4, 100)
 }
 
 func BenchmarkGoLevelDBIndexing1Workers1000Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 1, 1000)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 1, 1000)
 }
 
 func BenchmarkGoLevelDBIndexing2Workers1000Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 2, 1000)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 2, 1000)
 }
 
 func BenchmarkGoLevelDBIndexing4Workers1000Batch(b *testing.B) {
-	CommonBenchmarkIndexBatch(b, goleveldb.Name, goLevelDBTestOptions, DestroyTest, 4, 1000)
+	CommonBenchmarkIndexBatch(b, cassandra.Name, goLevelDBTestOptions, DestroyTest, 4, 1000)
 }

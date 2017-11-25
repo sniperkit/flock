@@ -20,7 +20,7 @@ import (
 
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 )
 
 func TestIndexReader(t *testing.T) {
@@ -32,7 +32,7 @@ func TestIndexReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestIndexDocIdReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func TestIndexDocIdOnlyReader(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}

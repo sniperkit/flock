@@ -16,12 +16,10 @@
 
 package bleve
 
-import (
-	"github.com/wrble/flock/index/store/goleveldb"
-)
+import "github.com/wrble/flock/index/store/cassandra"
 
 // in normal environments we configure boltdb as the default storage
 func initDisk() {
 	// default kv store
-	Config.DefaultKVStore = goleveldb.Name
+	Config.DefaultKVStore = cassandra.Name
 }

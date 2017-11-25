@@ -28,7 +28,7 @@ import (
 	regexpTokenizer "github.com/wrble/flock/analysis/tokenizer/regexp"
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 	"github.com/wrble/flock/index/store/null"
 	"github.com/wrble/flock/registry"
 )
@@ -50,7 +50,7 @@ func TestIndexOpenReopen(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestIndexOpenReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idx, err = NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err = NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestIndexInsert(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestIndexInsertThenDelete(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +291,7 @@ func TestIndexInsertThenUpdate(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -339,7 +339,7 @@ func TestIndexInsertMultiple(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +372,7 @@ func TestIndexInsertMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idx, err = NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err = NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +421,7 @@ func TestIndexInsertWithStore(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -514,7 +514,7 @@ func TestIndexInternalCRUD(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -608,7 +608,7 @@ func TestIndexBatch(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -691,7 +691,7 @@ func TestIndexInsertUpdateDeleteWithMultipleTypesStored(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -891,7 +891,7 @@ func TestIndexInsertFields(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -951,7 +951,7 @@ func TestIndexUpdateComposites(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1022,7 +1022,7 @@ func TestIndexFieldsMisc(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1069,7 +1069,7 @@ func TestIndexTermReaderCompositeFields(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1130,7 +1130,7 @@ func TestIndexDocumentVisitFieldTerms(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1226,7 +1226,7 @@ func TestConcurrentUpdate(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1282,7 +1282,7 @@ func TestLargeField(t *testing.T) {
 	}()
 
 	analysisQueue := index.NewAnalysisQueue(1)
-	idx, err := NewUpsideDownCouch(goleveldb.Name, testConfig, analysisQueue)
+	idx, err := NewUpsideDownCouch(cassandra.Name, testConfig, analysisQueue)
 	if err != nil {
 		t.Fatal(err)
 	}

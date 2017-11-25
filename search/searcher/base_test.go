@@ -22,7 +22,7 @@ import (
 	regexpTokenizer "github.com/wrble/flock/analysis/tokenizer/regexp"
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 	"github.com/wrble/flock/index/upsidedown"
 )
 
@@ -32,7 +32,7 @@ func init() {
 	analysisQueue := index.NewAnalysisQueue(1)
 	var err error
 	twoDocIndex, err = upsidedown.NewUpsideDownCouch(
-		goleveldb.Name,
+		cassandra.Name,
 		map[string]interface{}{
 			"path": "testidx",
 		}, analysisQueue)

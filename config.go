@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/wrble/flock/index"
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 	"github.com/wrble/flock/index/upsidedown"
 	"github.com/wrble/flock/registry"
 	"github.com/wrble/flock/search/highlight/highlighter/html"
@@ -65,7 +65,7 @@ func init() {
 	// default kv store
 	Config.DefaultKVStore = ""
 
-	Config.DefaultMemKVStore = goleveldb.Name
+	Config.DefaultMemKVStore = cassandra.Name
 
 	// default index
 	Config.DefaultIndexType = upsidedown.Name

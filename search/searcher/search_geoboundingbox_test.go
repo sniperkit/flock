@@ -20,7 +20,7 @@ import (
 
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
-	"github.com/wrble/flock/index/store/goleveldb"
+	"github.com/wrble/flock/index/store/cassandra"
 	"github.com/wrble/flock/index/upsidedown"
 	"github.com/wrble/flock/search"
 )
@@ -93,7 +93,7 @@ func setupGeo(t *testing.T) index.Index {
 
 	analysisQueue := index.NewAnalysisQueue(1)
 	i, err := upsidedown.NewUpsideDownCouch(
-		goleveldb.Name,
+		cassandra.Name,
 		map[string]interface{}{
 			"path": "idx",
 		},
