@@ -88,11 +88,8 @@ func (s *TermQueryScorer) SetQueryNorm(qnorm float64) {
 	}
 }
 
+// BM 25 ranking function
 func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
-	return s.BM25(ctx, termMatch)
-}
-
-func (s *TermQueryScorer) BM25(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
 	var scoreExplanation *search.Explanation
 
 	// Constants
@@ -130,40 +127,6 @@ func (s *TermQueryScorer) BM25(ctx *search.SearchContext, termMatch *index.TermF
 			{
 				Value:   adl,
 				Message: fmt.Sprintf("adl(averageDocLength=%d)", adl),
-			},
-			s.idfExplanation,
-		}
-		scoreExplanation = &search.Explanation{
-			Value:    score,
-			Message:  fmt.Sprintf("fieldWeight(%s:%s in %s), product of:", s.queryField, string(s.queryTerm), termMatch.ID),
-			Children: childrenExplanations,
-		}
-	}
-
-	return processMatch(s, tf, termMatch, scoreExplanation, score, ctx)
-}
-
-func (s *TermQueryScorer) TFIDF(ctx *search.SearchContext, termMatch *index.TermFieldDoc) *search.DocumentMatch {
-	var scoreExplanation *search.Explanation
-
-	// need to compute score
-	var tf float64
-	if termMatch.Freq < MaxSqrtCache {
-		tf = SqrtCache[int(termMatch.Freq)]
-	} else {
-		tf = math.Sqrt(float64(termMatch.Freq))
-	}
-	score := tf * termMatch.Norm * s.idf
-
-	if s.options.Explain {
-		childrenExplanations := []*search.Explanation{
-			{
-				Value:   tf,
-				Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
-			},
-			{
-				Value:   termMatch.Norm,
-				Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
 			},
 			s.idfExplanation,
 		}
