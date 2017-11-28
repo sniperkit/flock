@@ -39,9 +39,9 @@ var queryCmd = &cobra.Command{
 
 		query := buildQuery(args)
 		for i := 0; i < repeat; i++ {
-			req := bleve.NewSearchRequestOptions(query, limit, skip, explain)
+			req := flock.NewSearchRequestOptions(query, limit, skip, explain)
 			if highlight {
-				req.Highlight = bleve.NewHighlightWithStyle("ansi")
+				req.Highlight = flock.NewHighlightWithStyle("ansi")
 			}
 			if fields {
 				req.Fields = []string{"*"}
@@ -67,13 +67,13 @@ func buildQuery(args []string) query.Query {
 	var q query.Query
 	switch qtype {
 	case "prefix":
-		pquery := bleve.NewPrefixQuery(strings.Join(args[1:], " "))
+		pquery := flock.NewPrefixQuery(strings.Join(args[1:], " "))
 		if qfield != "" {
 			pquery.SetField(qfield)
 		}
 		q = pquery
 	case "term":
-		pquery := bleve.NewTermQuery(strings.Join(args[1:], " "))
+		pquery := flock.NewTermQuery(strings.Join(args[1:], " "))
 		if qfield != "" {
 			pquery.SetField(qfield)
 		}
@@ -81,7 +81,7 @@ func buildQuery(args []string) query.Query {
 	default:
 		// build a search with the provided parameters
 		queryString := strings.Join(args[1:], " ")
-		q = bleve.NewQueryStringQuery(queryString)
+		q = flock.NewQueryStringQuery(queryString)
 	}
 	return q
 }

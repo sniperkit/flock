@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bleve
+package flock
 
 // An IndexAlias is a wrapper around one or more
 // Index objects.  It has two distinct modes of

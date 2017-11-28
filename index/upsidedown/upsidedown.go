@@ -483,8 +483,7 @@ func (udc *UpsideDownCouch) indexField(docID []byte, includeTermVectors bool, fi
 		termFreqRow := &termFreqRows[termFreqRowsUsed]
 		termFreqRowsUsed++
 
-		InitTermFrequencyRow(termFreqRow, tf.Term, fieldIndex, docID,
-			uint64(frequencyFromTokenFreq(tf)), fieldNorm)
+		InitTermFrequencyRow(termFreqRow, tf.Term, fieldIndex, docID, float32(frequencyFromTokenFreq(tf))/float32(len(tokenFreqs)), fieldNorm)
 
 		if includeTermVectors {
 			termFreqRow.vectors, rows = udc.termVectorsFromTokenFreq(fieldIndex, tf, rows)

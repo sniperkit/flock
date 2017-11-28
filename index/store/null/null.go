@@ -45,6 +45,10 @@ func (r *reader) Get(table string, key []byte) ([]byte, error) {
 	return nil, nil
 }
 
+func (r *reader) GetCounter(table string, key []byte) (int64, error) {
+	return 0, nil
+}
+
 func (r *reader) DocCount() (uint64, error) {
 	return 0, nil
 }
@@ -55,6 +59,10 @@ func (r *reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {
 
 func (r *reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
 	return &iterator{}
+}
+
+func (r *reader) TypedPrefixIterator(table string, prefix []byte) store.TypedKVIterator {
+	return nil
 }
 
 func (r *reader) RangeIterator(table string, start, end []byte) store.KVIterator {
@@ -93,11 +101,12 @@ func (i *iterator) Close() error {
 
 type batch struct{}
 
-func (i *batch) Set(table string, key, val []byte)   {}
-func (i *batch) Delete(table string, key []byte)     {}
-func (i *batch) Merge(table string, key, val []byte) {}
-func (i *batch) Reset()                              {}
-func (i *batch) Close() error                        { return nil }
+func (i *batch) Set(table string, key, val []byte)                {}
+func (i *batch) Delete(table string, key []byte)                  {}
+func (i *batch) Merge(table string, key, val []byte)              {}
+func (i *batch) Increment(table string, key []byte, amount int64) {}
+func (i *batch) Reset()                                           {}
+func (i *batch) Close() error                                     { return nil }
 
 type writer struct{}
 

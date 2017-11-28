@@ -38,15 +38,15 @@ var dataset = flag.String("dataset", "", "only test datasets matching this regex
 var onlynum = flag.Int("testnum", -1, "only run the test with this number")
 var keepIndex = flag.Bool("keepIndex", false, "keep the index after testing")
 
-var indexType = flag.String("indexType", bleve.Config.DefaultIndexType, "index type to build")
-var kvType = flag.String("kvType", bleve.Config.DefaultKVStore, "kv store type to build")
+var indexType = flag.String("indexType", flock.Config.DefaultIndexType, "index type to build")
+var kvType = flag.String("kvType", flock.Config.DefaultKVStore, "kv store type to build")
 
 func TestIntegration(t *testing.T) {
 
 	flag.Parse()
 
-	bleve.Config.DefaultIndexType = *indexType
-	bleve.Config.DefaultKVStore = *kvType
+	flock.Config.DefaultIndexType = *indexType
+	flock.Config.DefaultKVStore = *kvType
 	t.Logf("using index type %s and kv type %s", *indexType, *kvType)
 
 	var err error
@@ -103,7 +103,7 @@ func runTestDir(t *testing.T, dir, datasetName string) {
 			}
 		}()
 	}
-	index, err := bleve.New("test.bleve", &mapping)
+	index, err := flock.New("test.bleve", &mapping)
 	if err != nil {
 		t.Errorf("error creating new index: %v", err)
 		return

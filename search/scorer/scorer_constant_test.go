@@ -33,9 +33,9 @@ func TestConstantScorer(t *testing.T) {
 		// test some simple math
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 1,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  1,
+				Score: 1.0,
 				Vectors: []*index.TermFieldVector{
 					{
 						Field: "desc",
@@ -81,9 +81,9 @@ func TestConstantScorerWithQueryNorm(t *testing.T) {
 	}{
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 1,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  1,
+				Score: 1.0,
 			},
 			result: &search.DocumentMatch{
 				IndexInternalID: index.IndexInternalID("one"),

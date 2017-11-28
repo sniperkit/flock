@@ -40,9 +40,9 @@ func TestTermScorer(t *testing.T) {
 		// test some simple math
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 1,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  1,
+				Score: 1.0,
 				Vectors: []*index.TermFieldVector{
 					{
 						Field: "desc",
@@ -90,9 +90,9 @@ func TestTermScorer(t *testing.T) {
 		// test the same thing again (score should be cached this time)
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 1,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  1,
+				Score: 1.0,
 			},
 			result: &search.DocumentMatch{
 				IndexInternalID: index.IndexInternalID("one"),
@@ -121,9 +121,9 @@ func TestTermScorer(t *testing.T) {
 		// test a case where the sqrt isn't precalculated
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 65,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  65,
+				Score: 1.0,
 			},
 			result: &search.DocumentMatch{
 				IndexInternalID: index.IndexInternalID("one"),
@@ -188,9 +188,9 @@ func TestTermScorerWithQueryNorm(t *testing.T) {
 	}{
 		{
 			termMatch: &index.TermFieldDoc{
-				ID:   index.IndexInternalID("one"),
-				Freq: 1,
-				Norm: 1.0,
+				ID:    index.IndexInternalID("one"),
+				Freq:  1,
+				Score: 1.0,
 			},
 			result: &search.DocumentMatch{
 				IndexInternalID: index.IndexInternalID("one"),

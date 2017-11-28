@@ -62,7 +62,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logger.Printf("request body: %s", requestBody)
 
 	// parse the request
-	var searchRequest bleve.SearchRequest
+	var searchRequest flock.SearchRequest
 	err = json.Unmarshal(requestBody, &searchRequest)
 	if err != nil {
 		showError(w, req, fmt.Sprintf("error parsing query: %v", err), 400)

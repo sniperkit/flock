@@ -38,7 +38,9 @@ var testAnalyzer = &analysis.Analyzer{
 }
 
 var testConfig = map[string]interface{}{
-	"path": "test",
+	"keyspace": "flock_testing",
+	"table":    "flock",
+	"hosts":    []string{"127.0.0.1"},
 }
 
 func TestIndexOpenReopen(t *testing.T) {

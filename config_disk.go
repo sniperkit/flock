@@ -14,12 +14,18 @@
 
 // +build !appengine,!appenginevm
 
-package bleve
+package flock
 
 import "github.com/wrble/flock/index/store/cassandra"
 
-// in normal environments we configure boltdb as the default storage
+// configure cassandra as the default storage
 func initDisk() {
 	// default kv store
 	Config.DefaultKVStore = cassandra.Name
+
+	Config.DefaultKVConfig = map[string]interface{}{
+		"keyspace": "flock_testing",
+		"table":    "flock",
+		"hosts":    []string{"127.0.0.1"},
+	}
 }

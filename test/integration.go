@@ -19,8 +19,8 @@ import (
 )
 
 type SearchTest struct {
-	Search  *bleve.SearchRequest `json:"search"`
-	Result  *bleve.SearchResult  `json:"result"`
+	Search  *flock.SearchRequest `json:"search"`
+	Result  *flock.SearchResult  `json:"result"`
 	Comment string               `json:"comment"`
 }
 

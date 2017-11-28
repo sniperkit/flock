@@ -89,9 +89,6 @@ import (
 	_ "github.com/wrble/flock/analysis/lang/it"
 	_ "github.com/wrble/flock/analysis/lang/pt"
 
-	// kv stores
-	_ "github.com/wrble/flock/index/store/goleveldb"
-
 	// index types
 	_ "github.com/wrble/flock/index/upsidedown"
 )

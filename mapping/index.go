@@ -111,7 +111,7 @@ func (im *IndexMappingImpl) AddCustomTokenFilter(name string, config map[string]
 //       "github.com/wrble/flock/analysis/tokenizers/unicode"
 //   )
 //
-//   m := bleve.NewIndexMapping()
+//   m := flock.NewIndexMapping()
 //   err := m.AddCustomAnalyzer("html", map[string]interface{}{
 //       "type": custom_analyzer.Name,
 //       "char_filters": []string{

@@ -17,7 +17,7 @@ package store
 import "encoding/json"
 
 // KVStore is an abstraction for working with KV stores.  Note that
-// in order to be used with the bleve.registry, it must also implement
+// in order to be used with the flock.registry, it must also implement
 // a constructor function of the registry.KVStoreConstructor type.
 type KVStore interface {
 
@@ -60,6 +60,10 @@ type KVReader interface {
 	// visit all K/V pairs with the provided prefix
 	PrefixIterator(table string, prefix []byte) KVIterator
 
+	// PrefixIterator returns a KVIterator that will
+	// visit all K/V pairs with the provided prefix and map it to known types
+	TypedPrefixIterator(table string, prefix []byte) TypedKVIterator
+
 	// RangeIterator returns a KVIterator that will
 	// visit all K/V pairs >= start AND < end
 	RangeIterator(table string, start, end []byte) KVIterator
@@ -95,6 +99,35 @@ type KVIterator interface {
 
 	// Current returns Key(),Value(),Valid() in a single operation
 	Current() ([]byte, []byte, bool)
+
+	// Close closes the iterator
+	Close() error
+}
+
+// KVIterator is an abstraction around key iteration
+type TypedKVIterator interface {
+
+	// Seek will advance the iterator to the specified key
+	Seek(key []byte)
+
+	// Next will advance the iterator to the next key
+	Next()
+
+	// Key returns the key pointed to by the iterator
+	// The bytes returned are **ONLY** valid until the next call to Seek/Next/Close
+	// Continued use after that requires that they be copied.
+	Key() []byte
+
+	// Value returns the value pointed to by the iterator
+	// The bytes returned are **ONLY** valid until the next call to Seek/Next/Close
+	// Continued use after that requires that they be copied.
+	Value() interface{}
+
+	// Valid returns whether or not the iterator is in a valid state
+	Valid() bool
+
+	// Current returns Key(),Value(),Valid() in a single operation
+	Current() ([]byte, interface{}, bool)
 
 	// Close closes the iterator
 	Close() error

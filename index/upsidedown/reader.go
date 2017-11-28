@@ -19,6 +19,7 @@ import (
 	"sort"
 	"sync/atomic"
 
+	"github.com/pkg/errors"
 	"github.com/wrble/flock/index"
 	"github.com/wrble/flock/index/store"
 )
@@ -26,7 +27,7 @@ import (
 type UpsideDownCouchTermFieldReader struct {
 	count              uint64
 	indexReader        *IndexReader
-	iterator           store.KVIterator
+	iterator           store.TypedKVIterator
 	term               []byte
 	tfrNext            *TermFrequencyRow
 	tfrPrealloc        TermFrequencyRow
@@ -60,7 +61,7 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 
 	buf := make([]byte, bufNeeded)
 	bufUsed := termFrequencyRowKeyTo(buf, field, term, nil)
-	it := indexReader.kvreader.PrefixIterator("t", buf[:bufUsed])
+	it := indexReader.kvreader.TypedPrefixIterator("t", buf[:bufUsed])
 
 	atomic.AddUint64(&indexReader.index.stats.termSearchersStarted, uint64(1))
 	return &UpsideDownCouchTermFieldReader{
@@ -87,26 +88,21 @@ func (r *UpsideDownCouchTermFieldReader) Next(preAlloced *index.TermFieldDoc) (*
 		} else {
 			r.tfrNext = &r.tfrPrealloc
 		}
-		key, val, valid := r.iterator.Current()
+		_, val, valid := r.iterator.Current()
 		if valid {
-			tfr := r.tfrNext
-			err := tfr.parseKDoc(key, r.term)
-			if err != nil {
-				return nil, err
-			}
-			err = tfr.parseV(val, r.includeTermVectors)
-			if err != nil {
-				return nil, err
+			currentRow, ok := val.(*TermFrequencyRow)
+			if !ok {
+				return nil, errors.New("Invalid row type from iterator.")
 			}
 			rv := preAlloced
 			if rv == nil {
 				rv = &index.TermFieldDoc{}
 			}
-			rv.ID = append(rv.ID, tfr.doc...)
-			rv.Freq = tfr.freq
-			rv.Norm = float64(tfr.norm)
-			if tfr.vectors != nil {
-				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(tfr.vectors)
+			rv.ID = append(rv.ID, currentRow.doc...)
+			rv.Freq = currentRow.freq
+			rv.Score = currentRow.score
+			if currentRow.vectors != nil {
+				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.vectors)
 			}
 			return rv, nil
 		}
@@ -121,25 +117,21 @@ func (r *UpsideDownCouchTermFieldReader) Advance(docID index.IndexInternalID, pr
 		}
 		tfr := InitTermFrequencyRow(r.tfrNext, r.term, r.field, docID, 0, 0)
 		r.iterator.Seek(tfr.Key())
-		key, val, valid := r.iterator.Current()
+		_, val, valid := r.iterator.Current()
 		if valid {
-			err := tfr.parseKDoc(key, r.term)
-			if err != nil {
-				return nil, err
-			}
-			err = tfr.parseV(val, r.includeTermVectors)
-			if err != nil {
-				return nil, err
+			currentRow, ok := val.(*TermFrequencyRow)
+			if !ok {
+				return nil, errors.New("Invalid row type from iterator.")
 			}
 			rv = preAlloced
 			if rv == nil {
 				rv = &index.TermFieldDoc{}
 			}
 			rv.ID = append(rv.ID, tfr.doc...)
-			rv.Freq = tfr.freq
-			rv.Norm = float64(tfr.norm)
-			if tfr.vectors != nil {
-				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(tfr.vectors)
+			rv.Freq = currentRow.freq
+			rv.Score = currentRow.score
+			if currentRow.vectors != nil {
+				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.vectors)
 			}
 			return rv, nil
 		}

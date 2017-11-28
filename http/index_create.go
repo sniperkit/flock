@@ -46,7 +46,7 @@ func (h *CreateIndexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	indexMapping := bleve.NewIndexMapping()
+	indexMapping := flock.NewIndexMapping()
 
 	// read the request body
 	requestBody, err := ioutil.ReadAll(req.Body)
@@ -64,7 +64,7 @@ func (h *CreateIndexHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	newIndex, err := bleve.New(h.indexPath(indexName), indexMapping)
+	newIndex, err := flock.New(h.indexPath(indexName), indexMapping)
 	if err != nil {
 		showError(w, req, fmt.Sprintf("error creating index: %v", err), 500)
 		return

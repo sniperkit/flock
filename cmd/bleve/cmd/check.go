@@ -62,7 +62,7 @@ var checkCmd = &cobra.Command{
 	},
 }
 
-func checkField(index bleve.Index, fieldName string) (int, error) {
+func checkField(index flock.Index, fieldName string) (int, error) {
 	termDictionary, err := getDictionary(index, fieldName)
 	if err != nil {
 		return 0, err
@@ -77,9 +77,9 @@ func checkField(index bleve.Index, fieldName string) (int, error) {
 			break
 		}
 
-		tq := bleve.NewTermQuery(term)
+		tq := flock.NewTermQuery(term)
 		tq.SetField(fieldName)
-		req := bleve.NewSearchRequest(tq)
+		req := flock.NewSearchRequest(tq)
 		req.Size = 0
 		res, err := index.Search(req)
 		if err != nil {
@@ -98,7 +98,7 @@ func checkField(index bleve.Index, fieldName string) (int, error) {
 	return numProblems, nil
 }
 
-func getDictionary(index bleve.Index, field string) (map[string]uint64, error) {
+func getDictionary(index flock.Index, field string) (map[string]uint64, error) {
 	rv := make(map[string]uint64)
 	i, _, err := index.Advanced()
 	if err != nil {

@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
 	"math"
 
 	"github.com/golang/protobuf/proto"
@@ -295,9 +296,9 @@ func (tv *TermVector) String() string {
 type TermFrequencyRow struct {
 	term    []byte
 	doc     []byte
-	freq    uint64
+	freq    float32
+	score   float32 // a "pre" score of this document if this term was searched for, allows truncation of term frequency iteration
 	vectors []*TermVector
-	norm    float32
 	field   uint16
 }
 
@@ -309,8 +310,12 @@ func (tfr *TermFrequencyRow) Term() []byte {
 	return tfr.term
 }
 
-func (tfr *TermFrequencyRow) Freq() uint64 {
+func (tfr *TermFrequencyRow) Freq() float32 {
 	return tfr.freq
+}
+
+func (tfr *TermFrequencyRow) Score() float32 {
+	return tfr.score
 }
 
 func (tfr *TermFrequencyRow) ScanPrefixForField() []byte {
@@ -348,37 +353,16 @@ func (tfr *TermFrequencyRow) KeyTo(buf []byte) (int, error) {
 	return termFrequencyRowKeyTo(buf, tfr.field, tfr.term, tfr.doc), nil
 }
 
-func termFrequencyRowKeyTo(buf []byte, field uint16, term, doc []byte) int {
-	binary.LittleEndian.PutUint16(buf[0:2], field)
-	termLen := copy(buf[2:], term)
-	buf[2+termLen] = ByteSeparator
-	docLen := copy(buf[2+termLen+1:], doc)
-	return 2 + termLen + 1 + docLen
-}
-
-func (tfr *TermFrequencyRow) DictionaryRowKey() []byte {
-	dr := NewDictionaryRow(tfr.term, tfr.field, 0)
-	return dr.Key()
-}
-
 func (tfr *TermFrequencyRow) Value() []byte {
 	buf := make([]byte, tfr.ValueSize())
 	size, _ := tfr.ValueTo(buf)
 	return buf[:size]
 }
 
-func (tfr *TermFrequencyRow) ValueSize() int {
-	bufLen := binary.MaxVarintLen64 + binary.MaxVarintLen64
-	for _, vector := range tfr.vectors {
-		bufLen += (binary.MaxVarintLen64 * 4) + (1+len(vector.arrayPositions))*binary.MaxVarintLen64
-	}
-	return bufLen
-}
-
 func (tfr *TermFrequencyRow) ValueTo(buf []byte) (int, error) {
-	used := binary.PutUvarint(buf[:binary.MaxVarintLen64], tfr.freq)
+	used := binary.PutUvarint(buf[:binary.MaxVarintLen64], 0)
 
-	normuint32 := math.Float32bits(tfr.norm)
+	normuint32 := math.Float32bits(tfr.score)
 	newbuf := buf[used : used+binary.MaxVarintLen64]
 	used += binary.PutUvarint(newbuf, uint64(normuint32))
 
@@ -395,36 +379,79 @@ func (tfr *TermFrequencyRow) ValueTo(buf []byte) (int, error) {
 	return used, nil
 }
 
-func (tfr *TermFrequencyRow) String() string {
-	return fmt.Sprintf("Term: `%s` Field: %d DocId: `%s` Frequency: %d Norm: %f Vectors: %v", string(tfr.term), tfr.field, string(tfr.doc), tfr.freq, tfr.norm, tfr.vectors)
+func termFrequencyRowKeyTo(buf []byte, field uint16, term, doc []byte) int {
+	binary.LittleEndian.PutUint16(buf[0:2], field)
+	termLen := copy(buf[2:], term)
+	buf[2+termLen] = ByteSeparator
+	docLen := copy(buf[2+termLen+1:], doc)
+	return 2 + termLen + 1 + docLen
 }
 
-func InitTermFrequencyRow(tfr *TermFrequencyRow, term []byte, field uint16, docID []byte, freq uint64, norm float32) *TermFrequencyRow {
+func (tfr *TermFrequencyRow) DictionaryRowKey() []byte {
+	dr := NewDictionaryRow(tfr.term, tfr.field, 0)
+	return dr.Key()
+}
+
+func (tfr *TermFrequencyRow) TFVectorsValue() []byte {
+	buf := make([]byte, tfr.ValueSize())
+	size, _ := tfr.TFVectorsValueTo(buf)
+	return buf[:size]
+}
+
+func (tfr *TermFrequencyRow) ValueSize() int {
+	bufLen := binary.MaxVarintLen64 + binary.MaxVarintLen64
+	for _, vector := range tfr.vectors {
+		bufLen += (binary.MaxVarintLen64 * 4) + (1+len(vector.arrayPositions))*binary.MaxVarintLen64
+	}
+	return bufLen
+}
+
+func (tfr *TermFrequencyRow) TFVectorsValueTo(buf []byte) (int, error) {
+	used := 0
+
+	for _, vector := range tfr.vectors {
+		used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], uint64(vector.field))
+		used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], vector.pos)
+		used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], vector.start)
+		used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], vector.end)
+		used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], uint64(len(vector.arrayPositions)))
+		for _, arrayPosition := range vector.arrayPositions {
+			used += binary.PutUvarint(buf[used:used+binary.MaxVarintLen64], arrayPosition)
+		}
+	}
+	return used, nil
+}
+
+func (tfr *TermFrequencyRow) String() string {
+	return fmt.Sprintf("Term: `%s` Field: %d DocId: `%s` Frequency: %d Score: %f Vectors: %v", string(tfr.term), tfr.field, string(tfr.doc), tfr.freq, tfr.score, tfr.vectors)
+}
+
+func InitTermFrequencyRow(tfr *TermFrequencyRow, term []byte, field uint16, docID []byte, freq float32, score float32) *TermFrequencyRow {
 	tfr.term = term
 	tfr.field = field
 	tfr.doc = docID
 	tfr.freq = freq
-	tfr.norm = norm
+	tfr.score = score
 	return tfr
 }
 
-func NewTermFrequencyRow(term []byte, field uint16, docID []byte, freq uint64, norm float32) *TermFrequencyRow {
+func NewTermFrequencyRow(term []byte, field uint16, docID []byte, freq float32, score float32) *TermFrequencyRow {
 	return &TermFrequencyRow{
 		term:  term,
 		field: field,
 		doc:   docID,
 		freq:  freq,
-		norm:  norm,
+		score: score,
 	}
 }
 
-func NewTermFrequencyRowWithTermVectors(term []byte, field uint16, docID []byte, freq uint64, norm float32, vectors []*TermVector) *TermFrequencyRow {
+func NewTermFrequencyRowWithTermVectors(term []byte, field uint16, docID []byte, freq float32, score float32, vectors []*TermVector) *TermFrequencyRow {
 	return &TermFrequencyRow{
 		term:    term,
 		field:   field,
 		doc:     docID,
 		freq:    freq,
-		norm:    norm,
+		score:   score,
 		vectors: vectors,
 	}
 }
@@ -469,22 +496,9 @@ func (tfr *TermFrequencyRow) parseKDoc(key []byte, term []byte) error {
 	return nil
 }
 
-func (tfr *TermFrequencyRow) parseV(value []byte, includeTermVectors bool) error {
-	var bytesRead int
-	tfr.freq, bytesRead = binary.Uvarint(value)
-	if bytesRead <= 0 {
-		return fmt.Errorf("invalid term frequency value, invalid frequency")
-	}
+func (tfr *TermFrequencyRow) parseTFVectorsV(value []byte, includeTermVectors bool) error {
+	bytesRead := 0
 	currOffset := bytesRead
-
-	var norm uint64
-	norm, bytesRead = binary.Uvarint(value[currOffset:])
-	if bytesRead <= 0 {
-		return fmt.Errorf("invalid term frequency value, no norm")
-	}
-	currOffset += bytesRead
-
-	tfr.norm = math.Float32frombits(uint32(norm))
 
 	tfr.vectors = nil
 	if !includeTermVectors {
@@ -555,7 +569,7 @@ func NewTermFrequencyRowKV(key, value []byte) (*TermFrequencyRow, error) {
 		return nil, err
 	}
 
-	err = rv.parseV(value, true)
+	err = rv.parseTFVectorsV(value, true)
 	if err != nil {
 		return nil, err
 	}

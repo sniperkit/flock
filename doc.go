@@ -23,16 +23,16 @@ Example Opening New Index, Indexing Data
         Body: "bleve indexing is easy",
     }
 
-    mapping := bleve.NewIndexMapping()
-    index, _ := bleve.New("example.bleve", mapping)
+    mapping := flock.NewIndexMapping()
+    index, _ := flock.New("example.bleve", mapping)
     index.Index(message.Id, message)
 
 Example Opening Existing Index, Searching Data
 
-    index, _ := bleve.Open("example.bleve")
-    query := bleve.NewQueryStringQuery("bleve")
-    searchRequest := bleve.NewSearchRequest(query)
+    index, _ := flock.Open("example.bleve")
+    query := flock.NewQueryStringQuery("bleve")
+    searchRequest := flock.NewSearchRequest(query)
     searchResult, _ := index.Search(searchRequest)
 
 */
-package bleve
+package flock

@@ -113,8 +113,8 @@ func (s *TermQueryScorer) Score(ctx *search.SearchContext, termMatch *index.Term
 				Message: fmt.Sprintf("tf(termFreq(%s:%s)=%d", s.queryField, string(s.queryTerm), termMatch.Freq),
 			},
 			{
-				Value:   termMatch.Norm,
-				Message: fmt.Sprintf("fieldNorm(field=%s, doc=%s)", s.queryField, termMatch.ID),
+				Value:   float64(termMatch.Score),
+				Message: fmt.Sprintf("fieldScore(field=%s, doc=%s)", s.queryField, termMatch.ID),
 			},
 			{
 				Value:   idf,

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bleve
+package flock
 
 import (
 	"expvar"
@@ -33,6 +33,7 @@ type configuration struct {
 	Cache                  *registry.Cache
 	DefaultHighlighter     string
 	DefaultKVStore         string
+	DefaultKVConfig        map[string]interface{}
 	DefaultMemKVStore      string
 	DefaultIndexType       string
 	SlowSearchLogThreshold time.Duration

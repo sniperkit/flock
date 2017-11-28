@@ -25,7 +25,7 @@ import (
 
 var cfgFile string
 
-var idx bleve.Index
+var idx flock.Index
 
 const canMutateBleveIndex = "canMutateBleveIndex"
 
@@ -53,7 +53,7 @@ var RootCmd = &cobra.Command{
 			return fmt.Errorf("must specify path to index")
 		}
 		var err error
-		idx, err = bleve.Open(args[0])
+		idx, err = flock.Open(args[0])
 		if err != nil {
 			return fmt.Errorf("error opening bleve index: %v", err)
 		}

@@ -21,20 +21,20 @@ import (
 	"github.com/wrble/flock"
 )
 
-var indexNameMapping map[string]bleve.Index
+var indexNameMapping map[string]flock.Index
 var indexNameMappingLock sync.RWMutex
 
-func RegisterIndexName(name string, idx bleve.Index) {
+func RegisterIndexName(name string, idx flock.Index) {
 	indexNameMappingLock.Lock()
 	defer indexNameMappingLock.Unlock()
 
 	if indexNameMapping == nil {
-		indexNameMapping = make(map[string]bleve.Index)
+		indexNameMapping = make(map[string]flock.Index)
 	}
 	indexNameMapping[name] = idx
 }
 
-func UnregisterIndexByName(name string) bleve.Index {
+func UnregisterIndexByName(name string) flock.Index {
 	indexNameMappingLock.Lock()
 	defer indexNameMappingLock.Unlock()
 
@@ -48,7 +48,7 @@ func UnregisterIndexByName(name string) bleve.Index {
 	return rv
 }
 
-func IndexByName(name string) bleve.Index {
+func IndexByName(name string) flock.Index {
 	indexNameMappingLock.RLock()
 	defer indexNameMappingLock.RUnlock()
 
@@ -78,7 +78,7 @@ func UpdateAlias(alias string, add, remove []string) error {
 		if len(remove) > 0 {
 			return fmt.Errorf("cannot remove indexes from a new alias")
 		}
-		indexes := make([]bleve.Index, len(add))
+		indexes := make([]flock.Index, len(add))
 		for i, addIndexName := range add {
 			addIndex, indexExists := indexNameMapping[addIndexName]
 			if !indexExists {
@@ -86,16 +86,16 @@ func UpdateAlias(alias string, add, remove []string) error {
 			}
 			indexes[i] = addIndex
 		}
-		indexAlias := bleve.NewIndexAlias(indexes...)
+		indexAlias := flock.NewIndexAlias(indexes...)
 		indexNameMapping[alias] = indexAlias
 	} else {
 		// something with this name already exists
-		indexAlias, isAlias := index.(bleve.IndexAlias)
+		indexAlias, isAlias := index.(flock.IndexAlias)
 		if !isAlias {
 			return fmt.Errorf("'%s' is not an alias", alias)
 		}
 		// build list of add indexes
-		addIndexes := make([]bleve.Index, len(add))
+		addIndexes := make([]flock.Index, len(add))
 		for i, addIndexName := range add {
 			addIndex, indexExists := indexNameMapping[addIndexName]
 			if !indexExists {
@@ -104,7 +104,7 @@ func UpdateAlias(alias string, add, remove []string) error {
 			addIndexes[i] = addIndex
 		}
 		// build list of remove indexes
-		removeIndexes := make([]bleve.Index, len(remove))
+		removeIndexes := make([]flock.Index, len(remove))
 		for i, removeIndexName := range remove {
 			removeIndex, indexExists := indexNameMapping[removeIndexName]
 			if !indexExists {

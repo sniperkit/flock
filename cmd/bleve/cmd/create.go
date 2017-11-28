@@ -48,7 +48,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("error building mapping: %v", err)
 		}
-		idx, err = bleve.NewUsing(args[0], mapping, indexType, storeType, nil)
+		idx, err = flock.NewUsing(args[0], mapping, indexType, storeType, nil)
 		if err != nil {
 			return fmt.Errorf("error creating index: %v", err)
 		}
@@ -76,6 +76,6 @@ func init() {
 	RootCmd.AddCommand(createCmd)
 
 	createCmd.Flags().StringVarP(&mappingPath, "mapping", "m", "", "Path to a file containing a JSON representation of an index mapping to use.")
-	createCmd.Flags().StringVarP(&storeType, "store", "s", bleve.Config.DefaultKVStore, "The bleve storage type to use.")
-	createCmd.Flags().StringVarP(&indexType, "index", "i", bleve.Config.DefaultIndexType, "The bleve index type to use.")
+	createCmd.Flags().StringVarP(&storeType, "store", "s", flock.Config.DefaultKVStore, "The bleve storage type to use.")
+	createCmd.Flags().StringVarP(&indexType, "index", "i", flock.Config.DefaultIndexType, "The bleve index type to use.")
 }

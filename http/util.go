@@ -42,7 +42,7 @@ func mustEncode(w io.Writer, i interface{}) {
 
 type varLookupFunc func(req *http.Request) string
 
-var logger = log.New(ioutil.Discard, "bleve.http", log.LstdFlags)
+var logger = log.New(ioutil.Discard, "flock.http", log.LstdFlags)
 
 // SetLog sets the logger used for logging
 // by default log messages are sent to ioutil.Discard

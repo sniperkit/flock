@@ -119,9 +119,9 @@ func TestIndexReader(t *testing.T) {
 	}
 
 	expectedMatch := &index.TermFieldDoc{
-		ID:   index.IndexInternalID("2"),
-		Freq: 1,
-		Norm: 0.5773502588272095,
+		ID:    index.IndexInternalID("2"),
+		Freq:  1,
+		Score: 0.5773502588272095,
 		Vectors: []*index.TermFieldVector{
 			{
 				Field: "desc",

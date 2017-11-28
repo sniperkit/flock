@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bleve
+package flock
 
 import (
 	"os"
@@ -104,7 +104,7 @@ func (b *Batch) Reset() {
 }
 
 // An Index implements all the indexing and searching
-// capabilities of bleve.  An Index can be created
+// capabilities of flock.  An Index can be created
 // using the New() and Open() methods.
 //
 // Index() takes an input value, deduces a DocumentMapping for its type,
@@ -218,7 +218,7 @@ type Index interface {
 // The provided mapping will be used for all
 // Index/Search operations.
 func New(path string, mapping mapping.IndexMapping) (Index, error) {
-	return newIndexUsing(path, mapping, Config.DefaultIndexType, Config.DefaultKVStore, nil)
+	return newIndexUsing(path, mapping, Config.DefaultIndexType, Config.DefaultKVStore, Config.DefaultKVConfig)
 }
 
 // Create a temp index that handles it's own cleanup and idempotency

@@ -119,8 +119,8 @@ func (id IndexInternalID) Compare(other IndexInternalID) int {
 type TermFieldDoc struct {
 	Term    string
 	ID      IndexInternalID
-	Freq    uint64
-	Norm    float64
+	Freq    float32
+	Score   float32
 	Vectors []*TermFieldVector
 }
 

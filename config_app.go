@@ -14,7 +14,7 @@
 
 // +build appengine appenginevm
 
-package bleve
+package flock
 
 // in the appengine environment we cannot support disk based indexes
 // so we do no extra configuration in this method
