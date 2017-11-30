@@ -178,24 +178,36 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 	// fill the batch
 	for _, addRows := range addRowsAll {
 		for _, row := range addRows {
-			wb.Set(row.Table(), row.Key(), row.Value())
+			err = wb.Set(row.Table(), row)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	for _, updateRows := range updateRowsAll {
 		for _, row := range updateRows {
-			wb.Set(row.Table(), row.Key(), row.Value())
+			err = wb.Set(row.Table(), row)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	for _, deleteRows := range deleteRowsAll {
 		for _, row := range deleteRows {
-			wb.Delete(row.Table(), row.Key())
+			err = wb.Delete(row.Table(), row.Key())
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	for dictRowKey, delta := range dictionaryDeltas {
-		wb.Increment(DictionaryTable, []byte(dictRowKey), delta)
+		err = wb.Increment(DictionaryTable, []byte(dictRowKey), delta)
+		if err != nil {
+			return err
+		}
 	}
 
 	// write out the batch
@@ -837,7 +849,10 @@ func (udc *UpsideDownCouch) SetInternal(key, val []byte) (err error) {
 	}()
 
 	batch := writer.NewBatch()
-	batch.Set(internalRow.Table(), internalRow.Key(), internalRow.Value())
+	err = batch.Set(internalRow.Table(), internalRow)
+	if err != nil {
+		return err
+	}
 	return writer.ExecuteBatch(batch)
 }
 
@@ -857,7 +872,10 @@ func (udc *UpsideDownCouch) DeleteInternal(key []byte) (err error) {
 	}()
 
 	batch := writer.NewBatch()
-	batch.Delete(internalRow.Table(), internalRow.Key())
+	err = batch.Delete(internalRow.Table(), internalRow.Key())
+	if err != nil {
+		return err
+	}
 	return writer.ExecuteBatch(batch)
 }
 

@@ -89,19 +89,19 @@ type TypedKVIterator struct {
 
 func (ldi *TypedKVIterator) Seek(key []byte) {
 	if ldi.store.debug {
-		fmt.Println("SEEK", string(key))
+		fmt.Println("TYPED SEEK", string(key))
 	}
 	for {
 		if ldi.store.debug && !ldi.Valid() {
-			fmt.Println("SEEK INVALID: ", string(key))
+			fmt.Println("TYPED SEEK INVALID: ", string(key))
 			return
 		}
 		if ldi.store.debug {
-			fmt.Println("SEEK EQ", string(key), string(ldi.currentKey))
+			fmt.Println("TYPED SEEK EQ", string(key), string(ldi.currentKey))
 		}
 		if bytes.Compare(ldi.currentKey, key) >= 0 {
 			if ldi.store.debug {
-				fmt.Println("SEEK DONE: ", string(key))
+				fmt.Println("TYPED SEEK DONE: ", string(key))
 			}
 			return
 		}
@@ -115,7 +115,7 @@ func (ldi *TypedKVIterator) Next() {
 		ldi.currentValid = false
 	}
 	if ldi.store.debug {
-		fmt.Println("NEXT", ldi.currentValid, string(ldi.currentKey))
+		fmt.Println("TYPED NEXT", ldi.currentValid, string(ldi.currentKey))
 	}
 }
 
@@ -128,7 +128,7 @@ func (ldi *TypedKVIterator) Current() ([]byte, interface{}, bool) {
 
 func (ldi *TypedKVIterator) Key() []byte {
 	if ldi.store.debug {
-		fmt.Println("ITER KEY", string(ldi.currentKey))
+		fmt.Println("TYPED ITER KEY", string(ldi.currentKey))
 	}
 	return ldi.currentKey
 }

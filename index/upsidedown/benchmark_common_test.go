@@ -15,13 +15,13 @@
 package upsidedown
 
 import (
-	"os"
 	"strconv"
 	"testing"
 
 	_ "github.com/wrble/flock/analysis/analyzer/standard"
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/store/cassandra"
 	"github.com/wrble/flock/registry"
 )
 
@@ -41,7 +41,23 @@ var benchmarkDocBodies = []string{
 type KVStoreDestroy func() error
 
 func DestroyTest() error {
-	return os.RemoveAll("test")
+	testConfig := map[string]interface{}{
+		"keyspace": "flock_testing",
+		"hosts":    []string{"127.0.0.1"},
+	}
+	store, err := cassandra.New(nil, testConfig)
+	if err != nil {
+		return err
+	}
+	err = cassandra.DropTables(store.(*cassandra.Store).Session)
+	if err != nil {
+		return err
+	}
+	err = cassandra.CreateTables(store.(*cassandra.Store).Session)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func CommonBenchmarkIndex(b *testing.B, storeName string, storeConfig map[string]interface{}, destroy KVStoreDestroy, analysisWorkers int) {

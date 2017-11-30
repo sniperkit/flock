@@ -11,21 +11,19 @@ import (
 )
 
 func open(t *testing.T, mo store.MergeOperator) store.KVStore {
-	tableName := "idx"
 	rv, err := New(mo, map[string]interface{}{
 		"keyspace": "example",
-		"table":    tableName,
 		"hosts":    []string{"127.0.0.1"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := rv.(*Store)
-	err = DropTables(st.Session, tableName)
+	err = DropTables(st.Session)
 	if err != nil && !strings.Contains(err.Error(), "unconfigured table") {
 		t.Fatal(err)
 	}
-	err = CreateTables(st.Session, tableName)
+	err = CreateTables(st.Session)
 	if err != nil {
 		t.Fatal(err)
 	}

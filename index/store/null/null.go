@@ -101,12 +101,12 @@ func (i *iterator) Close() error {
 
 type batch struct{}
 
-func (i *batch) Set(table string, key, val []byte)                {}
-func (i *batch) Delete(table string, key []byte)                  {}
-func (i *batch) Merge(table string, key, val []byte)              {}
-func (i *batch) Increment(table string, key []byte, amount int64) {}
-func (i *batch) Reset()                                           {}
-func (i *batch) Close() error                                     { return nil }
+func (i *batch) Set(table string, row interface{}) error                { return nil }
+func (i *batch) Delete(table string, key []byte) error                  { return nil }
+func (i *batch) Merge(table string, key, val []byte)                    {}
+func (i *batch) Increment(table string, key []byte, amount int64) error { return nil }
+func (i *batch) Reset()                                                 {}
+func (i *batch) Close() error                                           { return nil }
 
 type writer struct{}
 

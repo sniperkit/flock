@@ -15,7 +15,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = cassandra.CreateTables(store.(*cassandra.Store).Session, flock.Config.DefaultKVConfig["table"].(string))
+	err = cassandra.CreateTables(store.(*cassandra.Store).Session)
 	if err != nil {
 		log.Fatal(err)
 	}

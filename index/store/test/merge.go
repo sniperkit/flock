@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
 	"github.com/wrble/flock/index/upsidedown"
 )
@@ -47,7 +48,7 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 	// write the data
 	batch := writer.NewBatch()
 	for _, row := range data {
-		batch.Increment(table, row.key, row.val)
+		ensure.Nil(t, batch.Increment(table, row.key, row.val))
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {

@@ -41,7 +41,10 @@ func batchWriteRows(s store.KVStore, table string, rows []testRow) error {
 	// write the data
 	batch := writer.NewBatch()
 	for _, row := range rows {
-		batch.Set(table, row.key, row.val)
+		err = batch.Set(table, row.key, row.val)
+		if err != nil {
+			return err
+		}
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {

@@ -14,7 +14,9 @@
 
 package store
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // KVStore is an abstraction for working with KV stores.  Note that
 // in order to be used with the flock.registry, it must also implement
@@ -181,15 +183,15 @@ type KVBatch interface {
 
 	// Set updates the key with the specified value
 	// both key and value []byte may be reused as soon as this call returns
-	Set(table string, key, val []byte)
+	Set(table string, row interface{}) error
 
 	// Delete removes the specified key
 	// the key []byte may be reused as soon as this call returns
-	Delete(table string, key []byte)
+	Delete(table string, key []byte) error
 
 	// Incremenets the specified key by an amount
 	// the key []byte may be reused as soon as this call returns
-	Increment(table string, key []byte, amount int64)
+	Increment(table string, key []byte, amount int64) error
 
 	// Merge merges old value with the new value at the specified key
 	// as prescribed by the KVStores merge operator

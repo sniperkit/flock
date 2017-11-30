@@ -17,6 +17,7 @@ package null
 import (
 	"testing"
 
+	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
 )
 
@@ -39,15 +40,15 @@ func NullTestKVStore(t *testing.T, s store.KVStore) {
 	}
 
 	batch := writer.NewBatch()
-	batch.Set("b", []byte("key-b"), []byte("val-b"))
-	batch.Set("c", []byte("key-c"), []byte("val-c"))
-	batch.Set("d", []byte("key-d"), []byte("val-d"))
-	batch.Set("e", []byte("key-e"), []byte("val-e"))
-	batch.Set("f", []byte("key-f"), []byte("val-f"))
-	batch.Set("g", []byte("key-g"), []byte("val-g"))
-	batch.Set("h", []byte("key-h"), []byte("val-h"))
-	batch.Set("i", []byte("key-i"), []byte("val-i"))
-	batch.Set("j", []byte("key-j"), []byte("val-j"))
+	ensure.Nil(t, batch.Set("b", []byte("key-b"), []byte("val-b")))
+	ensure.Nil(t, batch.Set("c", []byte("key-c"), []byte("val-c")))
+	ensure.Nil(t, batch.Set("d", []byte("key-d"), []byte("val-d")))
+	ensure.Nil(t, batch.Set("e", []byte("key-e"), []byte("val-e")))
+	ensure.Nil(t, batch.Set("f", []byte("key-f"), []byte("val-f")))
+	ensure.Nil(t, batch.Set("g", []byte("key-g"), []byte("val-g")))
+	ensure.Nil(t, batch.Set("h", []byte("key-h"), []byte("val-h")))
+	ensure.Nil(t, batch.Set("i", []byte("key-i"), []byte("val-i")))
+	ensure.Nil(t, batch.Set("j", []byte("key-j"), []byte("val-j")))
 
 	err = writer.ExecuteBatch(batch)
 	if err != nil {

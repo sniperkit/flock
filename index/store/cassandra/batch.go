@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
+	"github.com/wrble/flock/index"
 	"github.com/wrble/flock/index/store"
 )
 
@@ -17,22 +19,36 @@ type Batch struct {
 const MAX_BATCH_STATEMENTS = 1 // try and estimate what's under 5K
 const BATCH_TYPE = gocql.UnloggedBatch
 
-func (b *Batch) Set(table string, key, val []byte) {
-	b.batch.Query(`INSERT INTO `+b.store.tableName+` (type, key, value) VALUES (?, ?, ?)`, table, key, val)
-	if b.store.debug {
-		fmt.Println("INSERT TABLE:", b.store.tableName, table, string(key), string(val))
+func (b *Batch) Set(table string, row interface{}) error {
+	indexRow, ok := row.(index.IndexRow)
+	if !ok {
+		return errors.New("Invalid row type.")
 	}
-	b.CheckExecute()
+	mapped := TableMapping(table)
+	if b.store.debug {
+		fmt.Println("INSERT TABLE:", mapped, table, string(indexRow.Key()), string(indexRow.Value()))
+	}
+	if mapped == "t" {
+		fmt.Println("STOP")
+	}
+	b.batch.Query(`INSERT INTO `+mapped+` (type, key, value) VALUES (?, ?, ?)`, table, indexRow.Key(), indexRow.Value())
+	return WrapError(b.CheckExecute(), "SET")
 }
 
-func (b *Batch) Delete(table string, key []byte) {
-	b.batch.Query(`DELETE FROM `+b.store.tableName+` WHERE type = ? AND key = ?`, table, key)
-	b.CheckExecute()
+func (b *Batch) Delete(table string, key []byte) error {
+	if b.store.debug {
+		fmt.Println("DELETE TABLE:", TableMapping(table), table, string(key))
+	}
+	b.batch.Query(`DELETE FROM `+TableMapping(table)+` WHERE type = ? AND key = ?`, table, key)
+	return WrapError(b.CheckExecute(), "DELETE")
 }
 
-func (b *Batch) Increment(table string, key []byte, amount int64) {
+func (b *Batch) Increment(table string, key []byte, amount int64) error {
+	if b.store.debug {
+		fmt.Println("INCREMENT TABLE:", TableMapping(table), table, string(key))
+	}
 	b.counterBatch.Query(`UPDATE d SET value = value + ? WHERE type = ? AND key = ?;`, amount, table, key)
-	b.CheckExecute()
+	return WrapError(b.CheckExecute(), "INCREMENT")
 }
 
 // Check if we need to execute the partial batch due to size

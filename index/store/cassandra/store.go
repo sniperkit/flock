@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gocql/gocql"
+	"github.com/pkg/errors"
 	"github.com/wrble/flock/index/store"
 	"github.com/wrble/flock/registry"
 )
@@ -23,6 +24,8 @@ var Tables = []string{
 	"v",
 }
 
+const SharedTable = "idx"
+
 func init() {
 	registry.RegisterKVStore(Name, New)
 }
@@ -32,8 +35,7 @@ type Store struct {
 
 	Session *gocql.Session
 
-	cluster   *gocql.ClusterConfig
-	tableName string
+	cluster *gocql.ClusterConfig
 
 	debug bool
 }
@@ -45,9 +47,6 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 	if err := validate("keyspace", config); err != nil {
 		return nil, err
 	}
-	if err := validate("table", config); err != nil {
-		return nil, err
-	}
 	cluster := gocql.NewCluster(config["hosts"].([]string)...)
 	cluster.Keyspace = config["keyspace"].(string)
 	cluster.Consistency = gocql.Quorum
@@ -57,16 +56,15 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 	}
 
 	st := Store{
-		mo:        mo,
-		cluster:   cluster,
-		Session:   session,
-		tableName: config["table"].(string),
-		debug:     false,
+		mo:      mo,
+		cluster: cluster,
+		Session: session,
+		debug:   true,
 	}
 	return &st, nil
 }
 
-func CreateTables(session *gocql.Session, tableName string) error {
+func CreateTables(session *gocql.Session) error {
 	var err error
 	err = session.Query(`CREATE TABLE d (type text, key blob, value counter, PRIMARY KEY(type, key))`).Exec()
 	if err != nil {
@@ -80,7 +78,7 @@ func CreateTables(session *gocql.Session, tableName string) error {
 	if err != nil {
 		return err
 	}
-	return session.Query(`CREATE TABLE ` + tableName + ` (type text, key blob, value blob, PRIMARY KEY(type, key))`).Exec()
+	return WrapError(session.Query(`CREATE TABLE `+SharedTable+` (type text, key blob, value blob, PRIMARY KEY(type, key))`).Exec(), "Create Tables")
 
 	//for _, tableName := range Tables {
 	//	err := session.Query(`CREATE TABLE ` + tableName + ` (key blob, value blob, PRIMARY KEY(key, value))`).Exec()
@@ -91,19 +89,19 @@ func CreateTables(session *gocql.Session, tableName string) error {
 	//return nil
 }
 
-func DropTables(session *gocql.Session, tableName string) error {
+func DropTables(session *gocql.Session) error {
 	var err error
 	err = session.Query(`DROP TABLE d`).Exec()
-	if err != nil && strings.Contains(err.Error(), "unconfigured table") {
-		return nil
+	if err != nil && !strings.Contains(err.Error(), "unconfigured table") {
+		return WrapError(err, "drop table d")
 	}
 	err = session.Query(`DROP TABLE t`).Exec()
-	if err != nil && strings.Contains(err.Error(), "unconfigured table") {
-		return nil
+	if err != nil && !strings.Contains(err.Error(), "unconfigured table") {
+		return WrapError(err, "drop table t")
 	}
-	err = session.Query(`DROP TABLE ` + tableName).Exec()
-	if err != nil && strings.Contains(err.Error(), "unconfigured table") {
-		return nil
+	err = session.Query(`DROP TABLE ` + SharedTable).Exec()
+	if err != nil && !strings.Contains(err.Error(), "unconfigured table") {
+		return WrapError(err, "drop table "+SharedTable)
 	}
 	return err
 
@@ -115,6 +113,20 @@ func DropTables(session *gocql.Session, tableName string) error {
 	//	fmt.Println("DROPPED", tableName)
 	//}
 	//return nil
+}
+
+func TableMapping(t string) string {
+	if t == "d" || t == "t" {
+		return t
+	}
+	return SharedTable
+}
+
+func WrapError(err error, context string) error {
+	if err != nil {
+		return errors.New(context + ": " + err.Error())
+	}
+	return nil
 }
 
 func validate(key string, config map[string]interface{}) error {

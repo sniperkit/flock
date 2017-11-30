@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
 )
 
@@ -42,7 +43,7 @@ func CommonTestReaderOwnsGetBytes(t *testing.T, s store.KVStore) {
 
 	// write key/val
 	batch := writer.NewBatch()
-	batch.Set(table, originalKey, originalVal)
+	ensure.Nil(t, batch.Set(table, originalKey, originalVal))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)

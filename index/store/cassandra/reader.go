@@ -16,7 +16,7 @@ func (r *Reader) Get(table string, key []byte) ([]byte, error) {
 	if r.store.debug {
 		fmt.Println("GET: "+table, key)
 	}
-	err := r.store.Session.Query(`SELECT value FROM `+r.store.tableName+` WHERE type = ? AND key = ?`, table, key).Scan(&value)
+	err := r.store.Session.Query(`SELECT value FROM `+TableMapping(table)+` WHERE type = ? AND key = ?`, table, key).Scan(&value)
 	if err != nil {
 		if err.Error() == "not found" {
 			return nil, nil
@@ -36,6 +36,9 @@ func (r *Reader) GetCounter(table string, key []byte) (int64, error) {
 	}
 	err := r.store.Session.Query(`SELECT value FROM d WHERE type = ? AND key = ?`, table, key).Scan(&value)
 	if err != nil {
+		if r.store.debug {
+			fmt.Println("GET COUNTER ERROR: " + err.Error())
+		}
 		if err.Error() == "not found" {
 			return -1, nil
 		}
@@ -49,7 +52,7 @@ func (r *Reader) GetCounter(table string, key []byte) (int64, error) {
 
 func (r *Reader) DocCount() (uint64, error) {
 	c := uint64(0)
-	err := r.store.Session.Query(`SELECT count(*) FROM `+r.store.tableName+` WHERE type = ?`, "b").Scan(&c)
+	err := r.store.Session.Query(`SELECT count(*) FROM `+SharedTable+` WHERE type = ?`, "b").Scan(&c)
 	return c, err
 }
 
@@ -63,9 +66,9 @@ func (r *Reader) MultiGet(table string, keys [][]byte) ([][]byte, error) {
 func (r *Reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
 	var iter *gocql.Iter
 	if r.store.debug {
-		fmt.Println("PrefixIterator", r.store.tableName, table, string(prefix))
+		fmt.Println("PrefixIterator", TableMapping(table), table, string(prefix))
 	}
-	iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
+	iter = r.store.Session.Query(`SELECT value, key FROM `+TableMapping(table)+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
 	rv := &Iterator{
 		store:    r.store,
 		iterator: iter,
@@ -78,9 +81,9 @@ func (r *Reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
 func (r *Reader) TypedPrefixIterator(table string, prefix []byte) store.TypedKVIterator {
 	var iter *gocql.Iter
 	if r.store.debug {
-		fmt.Println("PrefixIterator", r.store.tableName, table, string(prefix))
+		fmt.Println("TypedPrefixIterator", TableMapping(table), table, string(prefix))
 	}
-	iter = r.store.Session.Query(`SELECT value, key FROM `+r.store.tableName+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
+	iter = r.store.Session.Query(`SELECT value, key FROM `+TableMapping(table)+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
 	rv := &TypedKVIterator{
 		store:    r.store,
 		iterator: iter,
@@ -95,10 +98,7 @@ func (r *Reader) RangeIterator(table string, start, end []byte) store.KVIterator
 		fmt.Println("RangeIterator", table, string(start), string(end))
 	}
 	var iter *gocql.Iter
-	tableName := r.store.tableName
-	if table == "d" {
-		tableName = table
-	}
+	tableName := TableMapping(table)
 	if len(start) == 0 && len(end) == 0 {
 		iter = r.store.Session.Query(`SELECT value, key FROM `+tableName+` WHERE type = ?`, table).Iter()
 	} else if end != nil && len(end) > 0 {
