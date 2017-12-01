@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/rows"
 	"github.com/wrble/flock/index/store"
 )
 
@@ -29,20 +30,20 @@ type UpsideDownCouchTermFieldReader struct {
 	indexReader        *IndexReader
 	iterator           store.TypedKVIterator
 	term               []byte
-	tfrNext            *TermFrequencyRow
-	tfrPrealloc        TermFrequencyRow
+	tfrNext            *rows.TermFrequencyRow
+	tfrPrealloc        rows.TermFrequencyRow
 	keyBuf             []byte
 	field              uint16
 	includeTermVectors bool
 }
 
 func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, field uint16, includeFreq, includeNorm, includeTermVectors bool) (*UpsideDownCouchTermFieldReader, error) {
-	bufNeeded := termFrequencyRowKeySize(term, nil)
-	if bufNeeded < dictionaryRowKeySize(term) {
-		bufNeeded = dictionaryRowKeySize(term)
+	bufNeeded := rows.TermFrequencyRowKeySize(term, nil)
+	if bufNeeded < rows.DictionaryRowKeySize(term) {
+		bufNeeded = rows.DictionaryRowKeySize(term)
 	}
 
-	dictRow := NewDictionaryRow(term, field, 0)
+	dictRow := rows.NewDictionaryRow(term, field, 0)
 	val, err := indexReader.kvreader.GetCounter(dictRow.Table(), dictRow.Key())
 	if err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func newUpsideDownCouchTermFieldReader(indexReader *IndexReader, term []byte, fi
 	}
 
 	buf := make([]byte, bufNeeded)
-	bufUsed := termFrequencyRowKeyTo(buf, field, term, nil)
+	bufUsed := rows.TermFrequencyRowKeyTo(buf, field, term, nil)
 	it := indexReader.kvreader.TypedPrefixIterator("t", buf[:bufUsed])
 
 	atomic.AddUint64(&indexReader.index.stats.termSearchersStarted, uint64(1))
@@ -90,7 +91,7 @@ func (r *UpsideDownCouchTermFieldReader) Next(preAlloced *index.TermFieldDoc) (*
 		}
 		_, val, valid := r.iterator.Current()
 		if valid {
-			currentRow, ok := val.(*TermFrequencyRow)
+			currentRow, ok := val.(*rows.TermFrequencyRow)
 			if !ok {
 				return nil, errors.New("Invalid row type from iterator.")
 			}
@@ -98,11 +99,11 @@ func (r *UpsideDownCouchTermFieldReader) Next(preAlloced *index.TermFieldDoc) (*
 			if rv == nil {
 				rv = &index.TermFieldDoc{}
 			}
-			rv.ID = append(rv.ID, currentRow.doc...)
-			rv.Freq = currentRow.freq
-			rv.Score = currentRow.score
-			if currentRow.vectors != nil {
-				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.vectors)
+			rv.ID = append(rv.ID, currentRow.Doc...)
+			rv.Freq = currentRow.Freq
+			rv.Score = currentRow.Score
+			if currentRow.Vectors != nil {
+				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.Vectors)
 			}
 			return rv, nil
 		}
@@ -113,13 +114,13 @@ func (r *UpsideDownCouchTermFieldReader) Next(preAlloced *index.TermFieldDoc) (*
 func (r *UpsideDownCouchTermFieldReader) Advance(docID index.IndexInternalID, preAlloced *index.TermFieldDoc) (rv *index.TermFieldDoc, err error) {
 	if r.iterator != nil {
 		if r.tfrNext == nil {
-			r.tfrNext = &TermFrequencyRow{}
+			r.tfrNext = &rows.TermFrequencyRow{}
 		}
-		tfr := InitTermFrequencyRow(r.tfrNext, r.term, r.field, docID, 0, 0)
+		tfr := rows.InitTermFrequencyRow(r.tfrNext, r.term, r.field, docID, 0, 0)
 		r.iterator.Seek(tfr.Key())
 		_, val, valid := r.iterator.Current()
 		if valid {
-			currentRow, ok := val.(*TermFrequencyRow)
+			currentRow, ok := val.(*rows.TermFrequencyRow)
 			if !ok {
 				return nil, errors.New("Invalid row type from iterator.")
 			}
@@ -127,11 +128,11 @@ func (r *UpsideDownCouchTermFieldReader) Advance(docID index.IndexInternalID, pr
 			if rv == nil {
 				rv = &index.TermFieldDoc{}
 			}
-			rv.ID = append(rv.ID, tfr.doc...)
-			rv.Freq = currentRow.freq
-			rv.Score = currentRow.score
-			if currentRow.vectors != nil {
-				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.vectors)
+			rv.ID = append(rv.ID, tfr.Doc...)
+			rv.Freq = currentRow.Freq
+			rv.Score = currentRow.Score
+			if currentRow.Vectors != nil {
+				rv.Vectors = r.indexReader.index.termFieldVectorsFromTermVectors(currentRow.Vectors)
 			}
 			return rv, nil
 		}

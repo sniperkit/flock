@@ -80,10 +80,11 @@ func (r *Reader) PrefixIterator(table string, prefix []byte) store.KVIterator {
 
 func (r *Reader) TypedPrefixIterator(table string, prefix []byte) store.TypedKVIterator {
 	var iter *gocql.Iter
+	mapped := TableMapping(table)
 	if r.store.debug {
-		fmt.Println("TypedPrefixIterator", TableMapping(table), table, string(prefix))
+		fmt.Println("TypedPrefixIterator", mapped, table, string(prefix))
 	}
-	iter = r.store.Session.Query(`SELECT value, key FROM `+TableMapping(table)+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
+	iter = r.store.Session.Query(`SELECT value, key FROM `+mapped+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
 	rv := &TypedKVIterator{
 		store:    r.store,
 		iterator: iter,

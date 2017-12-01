@@ -20,6 +20,7 @@ import (
 	"github.com/wrble/flock/analysis/analyzer/standard"
 	"github.com/wrble/flock/document"
 	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/rows"
 	"github.com/wrble/flock/index/store/null"
 	"github.com/wrble/flock/registry"
 )
@@ -51,11 +52,11 @@ func TestAnalysisBug328(t *testing.T) {
 		if row, ok := row.(*FieldRow); ok {
 			fieldIndexes[row.index] = row.name
 		}
-		if row, ok := row.(*TermFrequencyRow); ok && string(row.term) == "bleve" {
-			for _, vec := range row.vectors {
-				if vec.field != row.field {
-					if fieldIndexes[row.field] != "_all" {
-						t.Errorf("row named %s field %d - vector field %d", fieldIndexes[row.field], row.field, vec.field)
+		if row, ok := row.(*rows.TermFrequencyRow); ok && string(row.Term) == "bleve" {
+			for _, vec := range row.Vectors {
+				if vec.Field != row.Field {
+					if fieldIndexes[row.Field] != "_all" {
+						t.Errorf("row named %s field %d - vector field %d", fieldIndexes[row.Field], row.Field, vec.Field)
 					}
 				}
 			}

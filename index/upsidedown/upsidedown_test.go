@@ -39,7 +39,6 @@ var testAnalyzer = &analysis.Analyzer{
 
 var testConfig = map[string]interface{}{
 	"keyspace": "flock_testing",
-	"table":    "flock",
 	"hosts":    []string{"127.0.0.1"},
 }
 

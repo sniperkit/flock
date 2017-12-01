@@ -31,6 +31,7 @@ import (
 	"github.com/wrble/flock/registry"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/wrble/flock/index/rows"
 )
 
 const Name = "upside_down"
@@ -141,7 +142,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 
 	for _, addRows := range addRowsAll {
 		for _, row := range addRows {
-			tfr, ok := row.(*TermFrequencyRow)
+			tfr, ok := row.(*rows.TermFrequencyRow)
 			if ok {
 				dictionaryDeltas[string(tfr.DictionaryRowKey())] += 1
 			}
@@ -155,7 +156,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 
 	for _, deleteRows := range deleteRowsAll {
 		for _, row := range deleteRows {
-			tfr, ok := row.(*TermFrequencyRow)
+			tfr, ok := row.(*rows.TermFrequencyRow)
 			if ok {
 				// need to decrement counter
 				dictionaryDeltas[string(tfr.DictionaryRowKey())] -= 1
@@ -204,7 +205,7 @@ func (udc *UpsideDownCouch) batchRows(writer store.KVWriter, addRowsAll [][]Upsi
 	}
 
 	for dictRowKey, delta := range dictionaryDeltas {
-		err = wb.Increment(DictionaryTable, []byte(dictRowKey), delta)
+		err = wb.Increment(rows.DictionaryTable, []byte(dictRowKey), delta)
 		if err != nil {
 			return err
 		}
@@ -377,19 +378,19 @@ func (udc *UpsideDownCouch) Update(doc *document.Document) (err error) {
 	return
 }
 
-func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, rows []index.IndexRow) (addRows []UpsideDownCouchRow, updateRows []UpsideDownCouchRow, deleteRows []UpsideDownCouchRow) {
-	addRows = make([]UpsideDownCouchRow, 0, len(rows))
+func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, indexRows []index.IndexRow) (addRows []UpsideDownCouchRow, updateRows []UpsideDownCouchRow, deleteRows []UpsideDownCouchRow) {
+	addRows = make([]UpsideDownCouchRow, 0, len(indexRows))
 
 	if backIndexRow == nil {
-		addRows = addRows[0:len(rows)]
-		for i, row := range rows {
+		addRows = addRows[0:len(indexRows)]
+		for i, row := range indexRows {
 			addRows[i] = row
 		}
 		return addRows, nil, nil
 	}
 
-	updateRows = make([]UpsideDownCouchRow, 0, len(rows))
-	deleteRows = make([]UpsideDownCouchRow, 0, len(rows))
+	updateRows = make([]UpsideDownCouchRow, 0, len(indexRows))
+	deleteRows = make([]UpsideDownCouchRow, 0, len(indexRows))
 
 	var existingTermKeys map[string]struct{}
 	backIndexTermKeys := backIndexRow.AllTermKeys()
@@ -409,9 +410,9 @@ func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, rows []in
 		}
 	}
 
-	for _, row := range rows {
+	for _, row := range indexRows {
 		switch row := row.(type) {
-		case *TermFrequencyRow:
+		case *rows.TermFrequencyRow:
 			if existingTermKeys != nil {
 				key := row.Key()
 				if _, ok := existingTermKeys[string(key)]; ok {
@@ -438,7 +439,7 @@ func (udc *UpsideDownCouch) mergeOldAndNew(backIndexRow *BackIndexRow, rows []in
 
 	// any of the existing rows that weren't updated need to be deleted
 	for existingTermKey := range existingTermKeys {
-		termFreqRow, err := NewTermFrequencyRowK([]byte(existingTermKey))
+		termFreqRow, err := rows.NewTermFrequencyRowK([]byte(existingTermKey))
 		if err == nil {
 			deleteRows = append(deleteRows, termFreqRow)
 		}
@@ -484,10 +485,10 @@ func encodeFieldType(f document.Field) byte {
 	return fieldType
 }
 
-func (udc *UpsideDownCouch) indexField(docID []byte, includeTermVectors bool, fieldIndex uint16, fieldLength int, tokenFreqs analysis.TokenFrequencies, rows []index.IndexRow, backIndexTermsEntries []*BackIndexTermsEntry) ([]index.IndexRow, []*BackIndexTermsEntry) {
+func (udc *UpsideDownCouch) indexField(docID []byte, includeTermVectors bool, fieldIndex uint16, fieldLength int, tokenFreqs analysis.TokenFrequencies, indexRows []index.IndexRow, backIndexTermsEntries []*BackIndexTermsEntry) ([]index.IndexRow, []*BackIndexTermsEntry) {
 	fieldNorm := float32(1.0 / math.Sqrt(float64(fieldLength)))
 
-	termFreqRows := make([]TermFrequencyRow, len(tokenFreqs))
+	termFreqRows := make([]rows.TermFrequencyRow, len(tokenFreqs))
 	termFreqRowsUsed := 0
 
 	terms := make([]string, 0, len(tokenFreqs))
@@ -495,21 +496,21 @@ func (udc *UpsideDownCouch) indexField(docID []byte, includeTermVectors bool, fi
 		termFreqRow := &termFreqRows[termFreqRowsUsed]
 		termFreqRowsUsed++
 
-		InitTermFrequencyRow(termFreqRow, tf.Term, fieldIndex, docID, float32(frequencyFromTokenFreq(tf))/float32(len(tokenFreqs)), fieldNorm)
+		rows.InitTermFrequencyRow(termFreqRow, tf.Term, fieldIndex, docID, float32(frequencyFromTokenFreq(tf))/float32(len(tokenFreqs)), fieldNorm)
 
 		if includeTermVectors {
-			termFreqRow.vectors, rows = udc.termVectorsFromTokenFreq(fieldIndex, tf, rows)
+			termFreqRow.Vectors, indexRows = udc.termVectorsFromTokenFreq(fieldIndex, tf, indexRows)
 		}
 
 		// record the back index entry
 		terms = append(terms, k)
 
-		rows = append(rows, termFreqRow)
+		indexRows = append(indexRows, termFreqRow)
 	}
 	backIndexTermsEntry := BackIndexTermsEntry{Field: proto.Uint32(uint32(fieldIndex)), Terms: terms}
 	backIndexTermsEntries = append(backIndexTermsEntries, &backIndexTermsEntry)
 
-	return rows, backIndexTermsEntries
+	return indexRows, backIndexTermsEntries
 }
 
 func (udc *UpsideDownCouch) Delete(id string) (err error) {
@@ -584,7 +585,7 @@ func (udc *UpsideDownCouch) deleteSingle(id string, backIndexRow *BackIndexRow, 
 
 	for _, backIndexEntry := range backIndexRow.termsEntries {
 		for i := range backIndexEntry.Terms {
-			tfr := NewTermFrequencyRow([]byte(backIndexEntry.Terms[i]), uint16(*backIndexEntry.Field), idBytes, 0, 0)
+			tfr := rows.NewTermFrequencyRow([]byte(backIndexEntry.Terms[i]), uint16(*backIndexEntry.Field), idBytes, 0, 0)
 			deleteRows = append(deleteRows, tfr)
 		}
 	}
@@ -618,9 +619,9 @@ func frequencyFromTokenFreq(tf *analysis.TokenFreq) int {
 	return tf.Frequency()
 }
 
-func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.TokenFreq, rows []index.IndexRow) ([]*TermVector, []index.IndexRow) {
-	a := make([]TermVector, len(tf.Locations))
-	rv := make([]*TermVector, len(tf.Locations))
+func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.TokenFreq, indexRows []index.IndexRow) ([]*rows.TermVector, []index.IndexRow) {
+	a := make([]rows.TermVector, len(tf.Locations))
+	rv := make([]*rows.TermVector, len(tf.Locations))
 
 	for i, l := range tf.Locations {
 		var newFieldRow *FieldRow
@@ -629,23 +630,23 @@ func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.
 			// lookup correct field
 			fieldIndex, newFieldRow = udc.fieldIndexOrNewRow(l.Field)
 			if newFieldRow != nil {
-				rows = append(rows, newFieldRow)
+				indexRows = append(indexRows, newFieldRow)
 			}
 		}
-		a[i] = TermVector{
-			field:          fieldIndex,
-			arrayPositions: l.ArrayPositions,
-			pos:            uint64(l.Position),
-			start:          uint64(l.Start),
-			end:            uint64(l.End),
+		a[i] = rows.TermVector{
+			Field:          fieldIndex,
+			ArrayPositions: l.ArrayPositions,
+			Pos:            uint64(l.Position),
+			Start:          uint64(l.Start),
+			End:            uint64(l.End),
 		}
 		rv[i] = &a[i]
 	}
 
-	return rv, rows
+	return rv, indexRows
 }
 
-func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []*index.TermFieldVector {
+func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*rows.TermVector) []*index.TermFieldVector {
 	if len(in) <= 0 {
 		return nil
 	}
@@ -654,13 +655,13 @@ func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []
 	rv := make([]*index.TermFieldVector, len(in))
 
 	for i, tv := range in {
-		fieldName := udc.fieldCache.FieldIndexed(tv.field)
+		fieldName := udc.fieldCache.FieldIndexed(tv.Field)
 		a[i] = index.TermFieldVector{
 			Field:          fieldName,
-			ArrayPositions: tv.arrayPositions,
-			Pos:            tv.pos,
-			Start:          tv.start,
-			End:            tv.end,
+			ArrayPositions: tv.ArrayPositions,
+			Pos:            tv.Pos,
+			Start:          tv.Start,
+			End:            tv.End,
 		}
 		rv[i] = &a[i]
 	}

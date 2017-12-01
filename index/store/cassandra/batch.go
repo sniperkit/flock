@@ -6,6 +6,7 @@ import (
 	"github.com/gocql/gocql"
 	"github.com/pkg/errors"
 	"github.com/wrble/flock/index"
+	"github.com/wrble/flock/index/rows"
 	"github.com/wrble/flock/index/store"
 )
 
@@ -22,16 +23,21 @@ const BATCH_TYPE = gocql.UnloggedBatch
 func (b *Batch) Set(table string, row interface{}) error {
 	indexRow, ok := row.(index.IndexRow)
 	if !ok {
-		return errors.New("Invalid row type.")
+		return errors.New("Invalid main row type.")
 	}
 	mapped := TableMapping(table)
 	if b.store.debug {
 		fmt.Println("INSERT TABLE:", mapped, table, string(indexRow.Key()), string(indexRow.Value()))
 	}
 	if mapped == "t" {
-		fmt.Println("STOP")
+		termRow, ok := row.(*rows.TermFrequencyRow)
+		if !ok {
+			return errors.New("Invalid row type.")
+		}
+		b.batch.Query(`INSERT INTO `+mapped+` (type, key, freq, score, vectors) VALUES (?, ?, ?, ?, ?)`, table, termRow.Key(), termRow.Freq, termRow.Score, termRow.TFVectorsValue())
+	} else {
+		b.batch.Query(`INSERT INTO `+mapped+` (type, key, value) VALUES (?, ?, ?)`, table, indexRow.Key(), indexRow.Value())
 	}
-	b.batch.Query(`INSERT INTO `+mapped+` (type, key, value) VALUES (?, ?, ?)`, table, indexRow.Key(), indexRow.Value())
 	return WrapError(b.CheckExecute(), "SET")
 }
 

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/wrble/flock/index/rows"
 )
 
 func TestRows(t *testing.T) {
@@ -44,34 +45,34 @@ func TestRows(t *testing.T) {
 			[]byte{'s', 't', 'y', 'l', 'e', ByteSeparator},
 		},
 		{
-			NewDictionaryRow([]byte{'b', 'e', 'e', 'r'}, 0, 27),
+			rows.NewDictionaryRow([]byte{'b', 'e', 'e', 'r'}, 0, 27),
 			[]byte{'d', 0, 0, 'b', 'e', 'e', 'r'},
 			[]byte{27},
 		},
 		{
-			NewTermFrequencyRow([]byte{'b', 'e', 'e', 'r'}, 0, []byte("catz"), 3, 3.14),
+			rows.NewTermFrequencyRow([]byte{'b', 'e', 'e', 'r'}, 0, []byte("catz"), 3, 3.14),
 			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'c', 'a', 't', 'z'},
 			[]byte{3, 195, 235, 163, 130, 4},
 		},
 		{
-			NewTermFrequencyRow([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 3, 3.14),
+			rows.NewTermFrequencyRow([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 3, 3.14),
 			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
 			[]byte{3, 195, 235, 163, 130, 4},
 		},
 		{
-			NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 3, 3.14, []*TermVector{{field: 0, pos: 1, start: 3, end: 11}, {field: 0, pos: 2, start: 23, end: 31}, {field: 0, pos: 3, start: 43, end: 51}}),
+			rows.NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 3, 3.14, []*rows.TermVector{{Field: 0, Pos: 1, Start: 3, End: 11}, {Field: 0, Pos: 2, Start: 23, End: 31}, {Field: 0, Pos: 3, Start: 43, End: 51}}),
 			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
 			[]byte{3, 195, 235, 163, 130, 4, 0, 1, 3, 11, 0, 0, 2, 23, 31, 0, 0, 3, 43, 51, 0},
 		},
 		// test larger varints
 		{
-			NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 25896, 3.14, []*TermVector{{field: 255, pos: 1, start: 3, end: 11}, {field: 0, pos: 2198, start: 23, end: 31}, {field: 0, pos: 3, start: 43, end: 51}}),
+			rows.NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 25896, 3.14, []*rows.TermVector{{Field: 255, Pos: 1, Start: 3, End: 11}, {Field: 0, Pos: 2198, Start: 23, End: 31}, {Field: 0, Pos: 3, Start: 43, End: 51}}),
 			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
 			[]byte{168, 202, 1, 195, 235, 163, 130, 4, 255, 1, 1, 3, 11, 0, 0, 150, 17, 23, 31, 0, 0, 3, 43, 51, 0},
 		},
 		// test vectors with arrayPositions
 		{
-			NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 25896, 3.14, []*TermVector{{field: 255, pos: 1, start: 3, end: 11, arrayPositions: []uint64{0}}, {field: 0, pos: 2198, start: 23, end: 31, arrayPositions: []uint64{1, 2}}, {field: 0, pos: 3, start: 43, end: 51, arrayPositions: []uint64{3, 4, 5}}}),
+			rows.NewTermFrequencyRowWithTermVectors([]byte{'b', 'e', 'e', 'r'}, 0, []byte("budweiser"), 25896, 3.14, []*rows.TermVector{{Field: 255, Pos: 1, Start: 3, End: 11, ArrayPositions: []uint64{0}}, {Field: 0, Pos: 2198, Start: 23, End: 31, ArrayPositions: []uint64{1, 2}}, {Field: 0, Pos: 3, Start: 43, End: 51, ArrayPositions: []uint64{3, 4, 5}}}),
 			[]byte{'t', 0, 0, 'b', 'e', 'e', 'r', ByteSeparator, 'b', 'u', 'd', 'w', 'e', 'i', 's', 'e', 'r'},
 			[]byte{168, 202, 1, 195, 235, 163, 130, 4, 255, 1, 1, 3, 11, 1, 0, 0, 150, 17, 23, 31, 2, 1, 2, 0, 3, 43, 51, 3, 3, 4, 5},
 		},
@@ -133,47 +134,47 @@ func TestRows(t *testing.T) {
 
 func TestDictionaryRowValueBug197(t *testing.T) {
 	// this was the smallest value that would trigger a crash
-	dr := &DictionaryRow{
-		field: 0,
-		term:  []byte("marty"),
-		count: 72057594037927936,
+	dr := &rows.DictionaryRow{
+		Field: 0,
+		Term:  []byte("marty"),
+		Count: 72057594037927936,
 	}
 	dr.Value()
 	// this is the maximum possible value
-	dr = &DictionaryRow{
-		field: 0,
-		term:  []byte("marty"),
-		count: math.MaxUint64,
+	dr = &rows.DictionaryRow{
+		Field: 0,
+		Term:  []byte("marty"),
+		Count: math.MaxUint64,
 	}
 	dr.Value()
 	// neither of these should panic
 }
 
 func BenchmarkTermFrequencyRowEncode(b *testing.B) {
-	row := NewTermFrequencyRowWithTermVectors(
+	row := rows.NewTermFrequencyRowWithTermVectors(
 		[]byte{'b', 'e', 'e', 'r'},
 		0,
 		[]byte("budweiser"),
 		3,
 		3.14,
-		[]*TermVector{
+		[]*rows.TermVector{
 			{
-				field: 0,
-				pos:   1,
-				start: 3,
-				end:   11,
+				Field: 0,
+				Pos:   1,
+				Start: 3,
+				End:   11,
 			},
 			{
-				field: 0,
-				pos:   2,
-				start: 23,
-				end:   31,
+				Field: 0,
+				Pos:   2,
+				Start: 23,
+				End:   31,
 			},
 			{
-				field: 0,
-				pos:   3,
-				start: 43,
-				end:   51,
+				Field: 0,
+				Pos:   3,
+				Start: 43,
+				End:   51,
 			},
 		})
 	b.ResetTimer()
@@ -188,7 +189,7 @@ func BenchmarkTermFrequencyRowDecode(b *testing.B) {
 	v := []byte{3, 195, 235, 163, 130, 4, 0, 1, 3, 11, 0, 0, 2, 23, 31, 0, 0, 3, 43, 51, 0}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := NewTermFrequencyRowKV(k, v)
+		_, err := rows.NewTermFrequencyRowKV(k, v)
 		if err != nil {
 			b.Fatal(err)
 		}

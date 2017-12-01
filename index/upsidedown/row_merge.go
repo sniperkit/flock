@@ -16,6 +16,8 @@ package upsidedown
 
 import (
 	"encoding/binary"
+
+	"github.com/wrble/flock/index/rows"
 )
 
 var mergeOperator upsideDownMerge
@@ -35,13 +37,13 @@ type upsideDownMerge struct{}
 
 func (m *upsideDownMerge) FullMerge(key, existingValue []byte, operands [][]byte) ([]byte, bool) {
 	// set up record based on key
-	dr, err := NewDictionaryRowK(key)
+	dr, err := rows.NewDictionaryRowK(key)
 	if err != nil {
 		return nil, false
 	}
 	if len(existingValue) > 0 {
 		// if existing value, parse it
-		err = dr.parseDictionaryV(existingValue)
+		err = dr.ParseDictionaryV(existingValue)
 		if err != nil {
 			return nil, false
 		}
@@ -50,13 +52,13 @@ func (m *upsideDownMerge) FullMerge(key, existingValue []byte, operands [][]byte
 	// now process operands
 	for _, operand := range operands {
 		next := int64(binary.LittleEndian.Uint64(operand))
-		if next < 0 && uint64(-next) > dr.count {
+		if next < 0 && uint64(-next) > dr.Count {
 			// subtracting next from existing would overflow
-			dr.count = 0
+			dr.Count = 0
 		} else if next < 0 {
-			dr.count -= uint64(-next)
+			dr.Count -= uint64(-next)
 		} else {
-			dr.count += uint64(next)
+			dr.Count += uint64(next)
 		}
 	}
 
