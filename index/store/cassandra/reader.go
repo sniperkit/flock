@@ -3,6 +3,8 @@ package cassandra
 import (
 	"fmt"
 
+	"encoding/hex"
+
 	"github.com/gocql/gocql"
 	"github.com/wrble/flock/index/store"
 )
@@ -45,7 +47,7 @@ func (r *Reader) GetCounter(table string, key []byte) (int64, error) {
 		return -1, err
 	}
 	if r.store.debug {
-		fmt.Println("GET COUNTER RESPONSE: " + string(value))
+		fmt.Println("GET COUNTER RESPONSE: ", value)
 	}
 	return value, err
 }
@@ -82,13 +84,14 @@ func (r *Reader) TypedPrefixIterator(table string, prefix []byte) store.TypedKVI
 	var iter *gocql.Iter
 	mapped := TableMapping(table)
 	if r.store.debug {
-		fmt.Println("TypedPrefixIterator", mapped, table, string(prefix))
+		fmt.Println("TypedPrefixIterator", mapped, table, string(prefix), hex.EncodeToString(prefix))
 	}
-	iter = r.store.Session.Query(`SELECT value, key FROM `+mapped+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
+	iter = r.store.Session.Query(`SELECT key, freq, score, vectors FROM `+mapped+` WHERE type = ? AND key >= ?`, table, prefix).Iter()
 	rv := &TypedKVIterator{
-		store:    r.store,
-		iterator: iter,
-		startKey: prefix,
+		store:        r.store,
+		iterator:     iter,
+		startKey:     prefix,
+		currentValue: make(map[string]interface{}),
 	}
 	rv.Next()
 	return rv

@@ -123,13 +123,13 @@ type TypedKVIterator interface {
 	// Value returns the value pointed to by the iterator
 	// The bytes returned are **ONLY** valid until the next call to Seek/Next/Close
 	// Continued use after that requires that they be copied.
-	Value() interface{}
+	Value() map[string]interface{}
 
 	// Valid returns whether or not the iterator is in a valid state
 	Valid() bool
 
 	// Current returns Key(),Value(),Valid() in a single operation
-	Current() ([]byte, interface{}, bool)
+	Current() ([]byte, map[string]interface{}, bool)
 
 	// Close closes the iterator
 	Close() error

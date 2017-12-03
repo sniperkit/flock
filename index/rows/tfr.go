@@ -172,6 +172,17 @@ func NewTermFrequencyRowWithTermVectors(term []byte, field uint16, docID []byte,
 	}
 }
 
+func NewTermFrequencyRowFromMap(m map[string]interface{}) (*TermFrequencyRow, error) {
+	r, err := NewTermFrequencyRowK(m["key"].([]byte))
+	if err != nil {
+		return nil, err
+	}
+	r.Freq = m["freq"].(float32)
+	r.Score = m["score"].(float32)
+	err = r.parseTFVectorsV(m["vectors"].([]byte), true)
+	return r, err
+}
+
 func NewTermFrequencyRowK(key []byte) (*TermFrequencyRow, error) {
 	rv := &TermFrequencyRow{}
 	err := rv.parseK(key)

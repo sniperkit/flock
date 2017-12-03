@@ -19,7 +19,6 @@ import (
 	"sort"
 	"sync/atomic"
 
-	"github.com/pkg/errors"
 	"github.com/wrble/flock/index"
 	"github.com/wrble/flock/index/rows"
 	"github.com/wrble/flock/index/store"
@@ -91,9 +90,9 @@ func (r *UpsideDownCouchTermFieldReader) Next(preAlloced *index.TermFieldDoc) (*
 		}
 		_, val, valid := r.iterator.Current()
 		if valid {
-			currentRow, ok := val.(*rows.TermFrequencyRow)
-			if !ok {
-				return nil, errors.New("Invalid row type from iterator.")
+			currentRow, err := rows.NewTermFrequencyRowFromMap(val)
+			if err != nil {
+				return nil, err
 			}
 			rv := preAlloced
 			if rv == nil {
@@ -120,9 +119,9 @@ func (r *UpsideDownCouchTermFieldReader) Advance(docID index.IndexInternalID, pr
 		r.iterator.Seek(tfr.Key())
 		_, val, valid := r.iterator.Current()
 		if valid {
-			currentRow, ok := val.(*rows.TermFrequencyRow)
-			if !ok {
-				return nil, errors.New("Invalid row type from iterator.")
+			currentRow, err := rows.NewTermFrequencyRowFromMap(val)
+			if err != nil {
+				return nil, err
 			}
 			rv = preAlloced
 			if rv == nil {

@@ -83,7 +83,7 @@ type TypedKVIterator struct {
 	startKey []byte
 
 	currentKey   []byte
-	currentValue interface{}
+	currentValue map[string]interface{}
 	currentValid bool
 }
 
@@ -110,7 +110,9 @@ func (ldi *TypedKVIterator) Seek(key []byte) {
 }
 
 func (ldi *TypedKVIterator) Next() {
-	ldi.currentValid = ldi.iterator.Scan(&ldi.currentValue, &ldi.currentKey)
+	ldi.currentValue = make(map[string]interface{})
+	ldi.currentValid = ldi.iterator.MapScan(ldi.currentValue)
+	ldi.currentKey = ldi.currentValue["key"].([]byte)
 	if ldi.currentValid && !bytes.HasPrefix(ldi.currentKey, ldi.startKey) {
 		ldi.currentValid = false
 	}
@@ -119,7 +121,7 @@ func (ldi *TypedKVIterator) Next() {
 	}
 }
 
-func (ldi *TypedKVIterator) Current() ([]byte, interface{}, bool) {
+func (ldi *TypedKVIterator) Current() ([]byte, map[string]interface{}, bool) {
 	if ldi.currentValid {
 		return ldi.Key(), ldi.Value(), true
 	}
@@ -133,7 +135,7 @@ func (ldi *TypedKVIterator) Key() []byte {
 	return ldi.currentKey
 }
 
-func (ldi *TypedKVIterator) Value() interface{} {
+func (ldi *TypedKVIterator) Value() map[string]interface{} {
 	return ldi.currentValue
 }
 
