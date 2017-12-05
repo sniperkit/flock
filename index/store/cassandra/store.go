@@ -70,14 +70,15 @@ func CreateTables(session *gocql.Session) error {
 	if err != nil {
 		return err
 	}
-	err = session.Query(`CREATE TABLE t (type text, key blob, freq float, score float, vectors blob, PRIMARY KEY(type, key))`).Exec()
+	err = session.Query(`CREATE TABLE t (type text, key blob, freq float, score float, vectors blob, PRIMARY KEY((type), key));`).Exec()
+	//err = session.Query(`CREATE TABLE t (type text, key blob, freq float, score float, vectors blob, PRIMARY KEY((type), score, key)) WITH CLUSTERING ORDER BY (score DESC);`).Exec()
 	if err != nil {
 		return err
 	}
-	err = session.Query(`CREATE INDEX t_score ON t (score);`).Exec()
-	if err != nil {
-		return err
-	}
+	//err = session.Query(`CREATE INDEX t_score ON t (score);`).Exec()
+	//if err != nil {
+	//	return err
+	//}
 	return WrapError(session.Query(`CREATE TABLE `+SharedTable+` (type text, key blob, value blob, PRIMARY KEY(type, key))`).Exec(), "Create Tables")
 
 	//for _, tableName := range Tables {
@@ -103,7 +104,7 @@ func DropTables(session *gocql.Session) error {
 	if err != nil && !strings.Contains(err.Error(), "unconfigured table") {
 		return WrapError(err, "drop table "+SharedTable)
 	}
-	return err
+	return nil
 
 	//for _, tableName := range Tables {
 	//	err := session.Query(`DROP TABLE ` + tableName).Exec()

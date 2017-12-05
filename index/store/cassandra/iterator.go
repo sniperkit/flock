@@ -112,7 +112,9 @@ func (ldi *TypedKVIterator) Seek(key []byte) {
 func (ldi *TypedKVIterator) Next() {
 	ldi.currentValue = make(map[string]interface{})
 	ldi.currentValid = ldi.iterator.MapScan(ldi.currentValue)
-	ldi.currentKey = ldi.currentValue["key"].([]byte)
+	if ldi.currentValid {
+		ldi.currentKey = ldi.currentValue["key"].([]byte)
+	}
 	if ldi.currentValid && !bytes.HasPrefix(ldi.currentKey, ldi.startKey) {
 		ldi.currentValid = false
 	}
