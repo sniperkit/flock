@@ -21,6 +21,7 @@ import (
 
 	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 // tests focused on verifying that readers are isolated from writers
@@ -55,7 +56,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	batch := writer.NewBatch()
 	for i := 0; i < hackSize; i++ {
 		k := fmt.Sprintf("x%d", i)
-		ensure.Nil(t, batch.Set(table, []byte(k), []byte("filler")))
+		ensure.Nil(t, batch.Set(table, upsidedown.NewInternalRow([]byte(k), []byte("filler"))))
 	}
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -64,7 +65,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 	// **************************************************
 
 	batch = writer.NewBatch()
-	ensure.Nil(t, batch.Set(table, []byte("a"), []byte("val-a")))
+	ensure.Nil(t, batch.Set(table, upsidedown.NewInternalRow([]byte("a"), []byte("val-a"))))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +119,7 @@ func CommonTestReaderIsolation(t *testing.T, s store.KVStore) {
 		t.Error(err)
 	}
 	batch = writer.NewBatch()
-	ensure.Nil(t, batch.Set("b", []byte("key-b"), []byte("val-b")))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-b"), []byte("val-b"))))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)

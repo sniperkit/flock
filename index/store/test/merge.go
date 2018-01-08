@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/facebookgo/ensure"
+	"github.com/wrble/flock/index/rows"
 	"github.com/wrble/flock/index/store"
-	"github.com/wrble/flock/index/upsidedown"
 )
 
 // test merge behavior
@@ -37,7 +37,7 @@ func CommonTestMerge(t *testing.T, s store.KVStore) {
 		{testKey, 1},
 	}
 
-	table := upsidedown.DictionaryTable
+	table := rows.DictionaryTable
 
 	// open a writer
 	writer, err := s.Writer()

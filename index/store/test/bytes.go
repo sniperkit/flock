@@ -20,6 +20,7 @@ import (
 
 	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 // tests which focus on the byte ownership
@@ -43,7 +44,7 @@ func CommonTestReaderOwnsGetBytes(t *testing.T, s store.KVStore) {
 
 	// write key/val
 	batch := writer.NewBatch()
-	ensure.Nil(t, batch.Set(table, originalKey, originalVal))
+	ensure.Nil(t, batch.Set(table, upsidedown.NewInternalRow(originalKey, originalVal)))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
 		t.Fatal(err)

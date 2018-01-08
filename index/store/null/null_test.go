@@ -19,6 +19,7 @@ import (
 
 	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 func TestStore(t *testing.T) {
@@ -40,15 +41,15 @@ func NullTestKVStore(t *testing.T, s store.KVStore) {
 	}
 
 	batch := writer.NewBatch()
-	ensure.Nil(t, batch.Set("b", []byte("key-b"), []byte("val-b")))
-	ensure.Nil(t, batch.Set("c", []byte("key-c"), []byte("val-c")))
-	ensure.Nil(t, batch.Set("d", []byte("key-d"), []byte("val-d")))
-	ensure.Nil(t, batch.Set("e", []byte("key-e"), []byte("val-e")))
-	ensure.Nil(t, batch.Set("f", []byte("key-f"), []byte("val-f")))
-	ensure.Nil(t, batch.Set("g", []byte("key-g"), []byte("val-g")))
-	ensure.Nil(t, batch.Set("h", []byte("key-h"), []byte("val-h")))
-	ensure.Nil(t, batch.Set("i", []byte("key-i"), []byte("val-i")))
-	ensure.Nil(t, batch.Set("j", []byte("key-j"), []byte("val-j")))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-b"), []byte("val-b"))))
+	ensure.Nil(t, batch.Set("c", upsidedown.NewInternalRow([]byte("key-c"), []byte("val-c"))))
+	ensure.Nil(t, batch.Set("d", upsidedown.NewInternalRow([]byte("key-d"), []byte("val-d"))))
+	ensure.Nil(t, batch.Set("e", upsidedown.NewInternalRow([]byte("key-e"), []byte("val-e"))))
+	ensure.Nil(t, batch.Set("f", upsidedown.NewInternalRow([]byte("key-f"), []byte("val-f"))))
+	ensure.Nil(t, batch.Set("g", upsidedown.NewInternalRow([]byte("key-g"), []byte("val-g"))))
+	ensure.Nil(t, batch.Set("h", upsidedown.NewInternalRow([]byte("key-h"), []byte("val-h"))))
+	ensure.Nil(t, batch.Set("i", upsidedown.NewInternalRow([]byte("key-i"), []byte("val-i"))))
+	ensure.Nil(t, batch.Set("j", upsidedown.NewInternalRow([]byte("key-j"), []byte("val-j"))))
 
 	err = writer.ExecuteBatch(batch)
 	if err != nil {

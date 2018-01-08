@@ -47,7 +47,19 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 	if err := validate("keyspace", config); err != nil {
 		return nil, err
 	}
-	cluster := gocql.NewCluster(config["hosts"].([]string)...)
+	hosts, ok := config["hosts"].([]string)
+	if !ok {
+		interfaceHosts, ok := config["hosts"].([]interface{})
+		if ok {
+			hosts = []string{}
+			for _, h := range interfaceHosts {
+				hosts = append(hosts, h.(string))
+			}
+		} else {
+			return nil, errors.New("Must specify 'hosts' param as []string")
+		}
+	}
+	cluster := gocql.NewCluster(hosts...)
 	cluster.Keyspace = config["keyspace"].(string)
 	cluster.Consistency = gocql.Quorum
 	session, err := cluster.CreateSession()
@@ -59,7 +71,7 @@ func New(mo store.MergeOperator, config map[string]interface{}) (store.KVStore, 
 		mo:      mo,
 		cluster: cluster,
 		Session: session,
-		debug:   true,
+		debug:   false,
 	}
 	return &st, nil
 }

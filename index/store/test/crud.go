@@ -19,6 +19,7 @@ import (
 
 	"github.com/facebookgo/ensure"
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 // basic crud tests
@@ -31,8 +32,8 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 	}
 
 	batch := writer.NewBatch()
-	ensure.Nil(t, batch.Set("a", []byte("key-a"), []byte("val-a")))
-	ensure.Nil(t, batch.Set("z", []byte("key-z"), []byte("val-z")))
+	ensure.Nil(t, batch.Set("a", upsidedown.NewInternalRow([]byte("key-a"), []byte("val-a"))))
+	ensure.Nil(t, batch.Set("z", upsidedown.NewInternalRow([]byte("key-z"), []byte("val-z"))))
 	ensure.Nil(t, batch.Delete("z", []byte("z")))
 	err = writer.ExecuteBatch(batch)
 	if err != nil {
@@ -41,15 +42,15 @@ func CommonTestKVCrud(t *testing.T, s store.KVStore) {
 
 	batch.Reset()
 
-	ensure.Nil(t, batch.Set("b", []byte("key-b"), []byte("val-b")))
-	ensure.Nil(t, batch.Set("b", []byte("key-c"), []byte("val-c")))
-	ensure.Nil(t, batch.Set("b", []byte("key-d"), []byte("val-d")))
-	ensure.Nil(t, batch.Set("b", []byte("key-e"), []byte("val-e")))
-	ensure.Nil(t, batch.Set("b", []byte("key-f"), []byte("val-f")))
-	ensure.Nil(t, batch.Set("b", []byte("key-g"), []byte("val-g")))
-	ensure.Nil(t, batch.Set("b", []byte("key-h"), []byte("val-h")))
-	ensure.Nil(t, batch.Set("b", []byte("key-i"), []byte("val-i")))
-	ensure.Nil(t, batch.Set("b", []byte("key-j"), []byte("val-j")))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-b"), []byte("val-b"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-c"), []byte("val-c"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-d"), []byte("val-d"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-e"), []byte("val-e"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-f"), []byte("val-f"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-g"), []byte("val-g"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-h"), []byte("val-h"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-i"), []byte("val-i"))))
+	ensure.Nil(t, batch.Set("b", upsidedown.NewInternalRow([]byte("key-j"), []byte("val-j"))))
 
 	err = writer.ExecuteBatch(batch)
 	if err != nil {

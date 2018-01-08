@@ -22,6 +22,7 @@ import (
 	"bytes"
 
 	"github.com/wrble/flock/index/store"
+	"github.com/wrble/flock/index/upsidedown"
 )
 
 // tests around the correct behavior of iterators
@@ -41,7 +42,7 @@ func batchWriteRows(s store.KVStore, table string, rows []testRow) error {
 	// write the data
 	batch := writer.NewBatch()
 	for _, row := range rows {
-		err = batch.Set(table, row.key, row.val)
+		err = batch.Set(table, upsidedown.NewInternalRow(row.key, row.val))
 		if err != nil {
 			return err
 		}
